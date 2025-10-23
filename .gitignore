@@ -1,0 +1,97 @@
+# ProbePilot - Git Ignore
+
+# Dependencies
+node_modules/
+vendor/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+*.lcov
+.nyc_output
+
+# Production builds
+build/
+dist/
+*.tar.gz
+*.tgz
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# eBPF specific
+*.o
+*.ll
+*.bc
+vmlinux.h
+
+# Container and deployment
+.docker/
+docker-compose.override.yml
+.kubernetes/
+*.dockerignore
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration overrides
+config/local.yml
+config/development.yml
+config/production.yml

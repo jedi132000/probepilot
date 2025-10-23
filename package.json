@@ -1,0 +1,37 @@
+{
+  "name": "probepilot",
+  "version": "0.1.0",
+  "description": "Your Mission Control for Kernel Observability - eBPF-powered observability platform",
+  "keywords": [
+    "ebpf",
+    "observability",
+    "monitoring",
+    "telemetry",
+    "kubernetes",
+    "performance",
+    "kernel",
+    "tracing"
+  ],
+  "homepage": "https://github.com/jedi132000/probepilot",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jedi132000/probepilot.git"
+  },
+  "license": "MIT",
+  "author": "ProbePilot Team",
+  "main": "index.js",
+  "scripts": {
+    "dev": "echo 'ProbePilot development server starting...'",
+    "build": "echo 'Building ProbePilot...'",
+    "test": "echo 'Running ProbePilot tests...'",
+    "lint": "echo 'Linting ProbePilot codebase...'",
+    "start": "echo 'Starting ProbePilot production server...'"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
