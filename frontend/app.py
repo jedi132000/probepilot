@@ -187,12 +187,11 @@ class ProbePilotApp:
                     value=self._generate_sample_metrics()
                 )
                 
-                # Update metrics every 2 seconds
+                # Update metrics on button click
                 refresh_btn = gr.Button("🔄 Refresh Metrics", variant="secondary")
                 refresh_btn.click(
                     fn=self._update_metrics,
-                    outputs=metrics_plot,
-                    every=2
+                    outputs=metrics_plot
                 )
         
         # Quick Actions Panel
