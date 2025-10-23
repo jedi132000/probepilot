@@ -10,26 +10,27 @@ ProbePilot is designed as a modern, cloud-native observability platform built ar
 ┌─────────────────────────────────────────────────────────────┐
 │                    ProbePilot Platform                      │
 ├─────────────────────────────────────────────────────────────┤
-│  Frontend Dashboard (React)                                 │
-│  ├── Mission Control UI                                     │
-│  ├── Probe Management                                       │
-│  ├── Real-time Visualization                               │
-│  └── Incident Response Tools                               │
+│  Frontend Dashboard (Gradio + Python)                      │
+│  ├── Mission Control UI (gr.Blocks)                        │
+│  ├── AI Copilot Interface (gr.ChatInterface)               │
+│  ├── Real-time Visualization (gr.LinePlot)                 │
+│  └── Probe Management (gr.Forms & Controls)                │
 ├─────────────────────────────────────────────────────────────┤
-│  Backend API (Go)                                          │
+│  Backend API (FastAPI + Python)                            │
 │  ├── Telemetry Processing Engine                           │
 │  ├── Probe Lifecycle Management                            │
 │  ├── Real-time Data Pipeline                               │
+│  ├── AI/ML Integration Layer                               │
 │  └── Alert & Notification System                           │
 ├─────────────────────────────────────────────────────────────┤
-│  eBPF Probe Layer                                          │
+│  eBPF Probe Layer (Go/Rust/C)                              │
 │  ├── Network Observability Probes                          │
 │  ├── Performance Monitoring Probes                         │
 │  ├── Security Observability Probes                         │
 │  └── Custom Probe Framework                                │
 ├─────────────────────────────────────────────────────────────┤
 │  Storage & Data Layer                                      │
-│  ├── Time-series Database (InfluxDB/Prometheus)            │
+│  ├── Time-series Database (InfluxDB/ClickHouse)            │
 │  ├── Trace Storage (Jaeger/Tempo)                          │
 │  ├── Metadata Store (PostgreSQL)                           │
 │  └── Configuration Management                              │
@@ -38,16 +39,18 @@ ProbePilot is designed as a modern, cloud-native observability platform built ar
 
 ## Core Components
 
-### 1. Frontend Dashboard (React + TypeScript)
-- **Mission Control Interface**: Central command center for all observability operations
-- **Real-time Dashboards**: Live visualization of system metrics and traces
-- **Probe Management UI**: Visual interface for deploying and managing eBPF probes
-- **Incident Response Tools**: Guided workflows for troubleshooting and resolution
+### 1. Frontend Dashboard (Gradio + Python)
+- **Mission Control Interface**: Central command center built with Gradio Blocks
+- **Real-time Dashboards**: Live visualization using Gradio's streaming components
+- **AI Copilot Integration**: Built-in chat interface for natural language queries
+- **Probe Management UI**: Form-based interfaces for deploying and managing eBPF probes
+- **Incident Response Tools**: Interactive workflows and collaborative features
 
-### 2. Backend Engine (Go)
-- **Telemetry API**: RESTful and gRPC APIs for data ingestion and querying
+### 2. Backend Engine (FastAPI + Python)
+- **Telemetry API**: RESTful APIs with automatic documentation via FastAPI
 - **Probe Orchestrator**: Manages probe lifecycle, deployment, and health
 - **Data Processing Pipeline**: Real-time stream processing for metrics and traces
+- **AI/ML Integration**: Native Python ML/AI model integration for insights
 - **Authentication & Authorization**: Multi-tenant security with RBAC
 
 ### 3. eBPF Probe Framework
@@ -65,19 +68,19 @@ ProbePilot is designed as a modern, cloud-native observability platform built ar
 ## Technology Stack
 
 ### Frontend
-- **Framework**: React 18+ with TypeScript
-- **State Management**: Zustand or Redux Toolkit
-- **UI Library**: Tailwind CSS + Headless UI
-- **Visualization**: D3.js, Recharts, or custom WebGL components
-- **Real-time Updates**: WebSocket connections for live data
+- **Framework**: Gradio for rapid UI development with Python
+- **Visualization**: Plotly, Matplotlib integration via Gradio components
+- **Theming**: Custom CSS and Gradio themes for aviation aesthetics  
+- **Real-time Updates**: Gradio's live components and WebSocket support
+- **AI Integration**: Built-in chat interfaces and voice interaction support
 
 ### Backend
-- **Language**: Go 1.21+
-- **Web Framework**: Gin or Fiber for REST APIs
-- **gRPC**: For high-performance internal communication
-- **Database**: PostgreSQL for metadata, InfluxDB for time-series
-- **Message Queue**: NATS or Apache Kafka for event streaming
-- **Containerization**: Docker with multi-stage builds
+- **Language**: Python 3.8+ with FastAPI framework
+- **API Framework**: FastAPI for automatic OpenAPI documentation
+- **Database**: PostgreSQL for metadata, InfluxDB/ClickHouse for time-series
+- **Message Queue**: Redis/NATS for event streaming and caching
+- **AI/ML Stack**: scikit-learn, pandas, numpy for data processing and insights
+- **Containerization**: Docker with Python-optimized images
 
 ### Infrastructure
 - **Orchestration**: Kubernetes-native with custom operators
@@ -90,41 +93,41 @@ ProbePilot is designed as a modern, cloud-native observability platform built ar
 
 ### Phase 1: Foundation (Months 1-3)
 - [ ] **Core Architecture Setup**
-  - Basic Go backend with REST API
-  - React frontend with authentication
+  - FastAPI backend with REST API endpoints
+  - Gradio frontend with mission control dashboard
   - PostgreSQL metadata storage
-  - Docker containerization
+  - Docker containerization for Python stack
 
 - [ ] **Basic eBPF Integration**
-  - Simple network latency probe
-  - Basic probe deployment mechanism
-  - Real-time data collection
-  - Simple dashboard visualization
+  - Simple network latency probe (Go/Rust/C)
+  - Basic probe deployment via FastAPI endpoints
+  - Real-time data collection and processing
+  - Gradio dashboard with live telemetry visualization
 
 - [ ] **Developer Experience**
-  - Local development environment
-  - Basic documentation
-  - Unit and integration tests
-  - CI/CD pipeline setup
+  - Python-native development environment
+  - Gradio hot-reload development setup
+  - Unit and integration tests (pytest)
+  - CI/CD pipeline for Python applications
 
 ### Phase 2: Core Features (Months 4-6)
 - [ ] **Probe Management**
-  - Visual probe deployment interface
-  - Probe health monitoring
-  - Configuration management
-  - Remote probe updates
+  - Visual probe deployment via Gradio forms and dropdowns
+  - Probe health monitoring with real-time status displays
+  - Configuration management through interactive UI
+  - Remote probe updates via API integration
 
-- [ ] **Data Pipeline**
-  - Time-series data ingestion
-  - Real-time stream processing
-  - Data retention policies
-  - Query optimization
+- [ ] **Data Pipeline & AI Integration**
+  - Time-series data ingestion and processing
+  - Real-time stream processing with Python
+  - AI-powered insights and anomaly detection
+  - Natural language query interface via Gradio chat
 
 - [ ] **Advanced Visualization**
-  - Interactive dashboards
-  - Custom chart builders
-  - Real-time data streaming
-  - Export capabilities
+  - Interactive Gradio dashboards with Plotly integration
+  - Custom chart builders and metric explorers
+  - Real-time data streaming to Gradio components
+  - Export capabilities and report generation
 
 ### Phase 3: Production Ready (Months 7-9)
 - [ ] **Enterprise Features**
@@ -147,22 +150,22 @@ ProbePilot is designed as a modern, cloud-native observability platform built ar
 
 ### Phase 4: Advanced Capabilities (Months 10-12)
 - [ ] **AI-Powered Features**
-  - Anomaly detection
-  - Predictive analytics
-  - Automated root cause analysis
-  - Intelligent alerting
+  - Machine learning-based anomaly detection
+  - Predictive analytics and forecasting
+  - Automated root cause analysis with natural language explanations
+  - Intelligent alerting and recommendation systems
 
 - [ ] **Extended Probe Library**
-  - Application-specific probes
-  - Cloud provider integrations
-  - Custom probe SDK
-  - Community probe marketplace
+  - Application-specific probes for common frameworks
+  - Cloud provider integrations (AWS, GCP, Azure)
+  - Custom probe SDK with Python and low-level language support
+  - Community probe marketplace and sharing platform
 
 - [ ] **Enterprise Integrations**
-  - OIDC/SAML authentication
-  - Enterprise monitoring tools
-  - Compliance reporting
-  - Advanced security features
+  - OIDC/SAML authentication integration
+  - Enterprise monitoring tools connectivity
+  - Compliance reporting and audit trails
+  - Advanced security features and encryption
 
 ## Target Deployment Scenarios
 

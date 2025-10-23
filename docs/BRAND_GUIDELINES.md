@@ -85,13 +85,55 @@
 
 ## Brand Applications
 
+### Gradio Theme Integration
+The aviation brand is implemented through custom Gradio themes and CSS styling:
+
+```python
+# Primary brand colors in Gradio theme
+aviation_theme = gr.themes.Base(
+    primary_hue=gr.themes.Color(
+        c500="#3b82f6",   # Sky Blue
+        c700="#1d4ed8",   # Medium Blue  
+        c900="#1e3a8a"    # Mission Blue
+    ),
+    secondary_hue=gr.themes.Color(
+        c500="#10b981"    # Cockpit Green
+    )
+)
+```
+
+### Custom CSS Styling
+Mission control aesthetics through backdrop blur effects and glass morphism:
+
+```css
+.mission-control-header {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+```
+
+### UI Component Guidelines
+- **Status Indicators**: Use colored circles (green/orange/red) for system health
+- **Buttons**: Primary actions in Mission Blue, secondary in neutral tones
+- **Panels**: Semi-transparent backgrounds with subtle borders
+- **Charts**: Dark backgrounds with bright accent colors for readability
+
 ### Website Headers
 Use the aviation theme consistently across marketing materials while maintaining professional credibility.
 
 ### Documentation
 Balance technical accuracy with approachable explanations, using aviation metaphors where they enhance understanding.
 
-### UI Elements
+### Gradio Interface Elements
 Incorporate subtle aviation-inspired design elements without overwhelming the functional interface.
 
 ---

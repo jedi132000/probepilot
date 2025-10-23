@@ -1,7 +1,7 @@
 {
   "name": "probepilot",
   "version": "0.1.0",
-  "description": "Your Mission Control for Kernel Observability - eBPF-powered observability platform",
+  "description": "Your Mission Control for Kernel Observability - eBPF-powered observability platform with Gradio frontend",
   "keywords": [
     "ebpf",
     "observability",
@@ -10,7 +10,11 @@
     "kubernetes",
     "performance",
     "kernel",
-    "tracing"
+    "tracing",
+    "gradio",
+    "python",
+    "fastapi",
+    "ai-powered"
   ],
   "homepage": "https://github.com/jedi132000/probepilot",
   "repository": {
@@ -19,19 +23,45 @@
   },
   "license": "MIT",
   "author": "ProbePilot Team",
-  "main": "index.js",
+  "main": "frontend/app.py",
   "scripts": {
-    "dev": "echo 'ProbePilot development server starting...'",
-    "build": "echo 'Building ProbePilot...'",
-    "test": "echo 'Running ProbePilot tests...'",
-    "lint": "echo 'Linting ProbePilot codebase...'",
-    "start": "echo 'Starting ProbePilot production server...'"
+    "dev": "cd frontend && python app.py --debug",
+    "dev:backend": "cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:frontend": "cd frontend && python app.py --debug --reload",
+    "build": "echo 'Building ProbePilot containers...' && docker-compose build",
+    "test": "echo 'Running ProbePilot tests...' && python -m pytest",
+    "test:frontend": "cd frontend && python -m pytest tests/",
+    "test:backend": "cd backend && python -m pytest tests/",
+    "lint": "echo 'Linting ProbePilot codebase...' && black . && flake8",
+    "lint:fix": "black . && isort .",
+    "start": "docker-compose up -d",
+    "start:dev": "docker-compose -f docker-compose.dev.yml up",
+    "docs": "cd docs && mkdocs serve",
+    "install": "pip install -r requirements.txt",
+    "install:dev": "pip install -r requirements-dev.txt"
   },
   "devDependencies": {
     "prettier": "^3.0.0",
     "eslint": "^8.0.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "python": ">=3.8.0"
+  },
+  "python": {
+    "dependencies": [
+      "gradio>=4.0.0",
+      "fastapi>=0.100.0",
+      "uvicorn[standard]>=0.23.0",
+      "plotly>=5.15.0",
+      "pandas>=2.0.0",
+      "numpy>=1.24.0"
+    ],
+    "devDependencies": [
+      "pytest>=7.0.0",
+      "black>=23.0.0",
+      "flake8>=6.0.0",
+      "isort>=5.12.0"
+    ]
   }
 }
