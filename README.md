@@ -18,7 +18,45 @@ Navigate clouds and clusters with precision — ProbePilot puts you in command o
 
 ## 🚀 Quick Start
 
-*Coming Soon - ProbePilot is currently under active development*
+### Option 1: Docker (Recommended)
+```bash
+# Clone the repository
+git clone https://github.com/jedi132000/probepilot.git
+cd probepilot
+
+# Start with Docker Compose
+docker-compose up -d
+
+# Access ProbePilot Mission Control
+open http://localhost:7860
+```
+
+### Option 2: Local Development
+```bash
+# Clone the repository
+git clone https://github.com/jedi132000/probepilot.git
+cd probepilot
+
+# Start the backend (FastAPI)
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload &
+
+# Start the frontend (Gradio)
+cd ../frontend
+pip install -r requirements.txt
+python app.py
+
+# Access ProbePilot Mission Control
+open http://localhost:7860
+```
+
+### Prerequisites
+- **Python 3.8+** (for local development)
+- **Docker & Docker Compose** (for containerized setup)
+- **Linux kernel 4.4+** (for eBPF support)
+
+See [Development Setup Guide](docs/DEVELOPMENT.md) for detailed instructions.
 
 ## 🎨 Brand Identity
 

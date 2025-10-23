@@ -1,0 +1,53 @@
+# ProbePilot Backend Dependencies
+
+# Core FastAPI
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+
+# Data Models and Validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Database
+sqlalchemy>=2.0.0
+databases[postgresql]>=0.8.0
+alembic>=1.11.0
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.6
+passlib[bcrypt]>=1.7.4
+
+# HTTP Client
+httpx>=0.24.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Time Series Database
+influxdb-client>=1.37.0
+
+# Message Queue / Caching
+redis>=4.6.0
+celery>=5.3.0
+
+# Monitoring & Observability
+prometheus-client>=0.17.0
+structlog>=23.1.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Development & Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.0.0
+isort>=5.12.0
+mypy>=1.5.0
+
+# eBPF Integration (optional)
+# bcc>=0.27.0  # Uncomment if using BCC for eBPF
+# ctypes2>=1.0.0  # For C library integration

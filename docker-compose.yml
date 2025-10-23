@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "7860:7860"
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - DEBUG=false
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - probepilot-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://probepilot:probepilot@database:5432/probepilot
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=false
+    depends_on:
+      - database
+      - redis
+    restart: unless-stopped
+    networks:
+      - probepilot-network
+    volumes:
+      - ./probes:/app/probes:ro
+
+  database:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=probepilot
+      - POSTGRES_USER=probepilot
+      - POSTGRES_PASSWORD=probepilot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - probepilot-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - probepilot-network
+    volumes:
+      - redis_data:/data
+
+  # InfluxDB for time-series data
+  influxdb:
+    image: influxdb:2.7-alpine
+    environment:
+      - INFLUXDB_DB=probepilot
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=probepilot
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    restart: unless-stopped
+    networks:
+      - probepilot-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+
+networks:
+  probepilot-network:
+    driver: bridge
