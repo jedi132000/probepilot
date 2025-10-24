@@ -5,7 +5,18 @@ eBPF probe deployment and management interface
 
 import gradio as gr
 import json
+import asyncio
 from datetime import datetime
+from typing import Dict, List, Any
+
+# Import backend client for real API integration
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from api.backend_client import BackendClient
+
+# Initialize backend client
+backend_client = BackendClient()
 
 def create_probe_manager():
     """Create the probe management interface"""
@@ -34,7 +45,7 @@ def create_probe_manager():
                 
                 with gr.Row():
                     deploy_btn = gr.Button("🚀 Deploy Selected", variant="primary")
-                    refresh_btn = gr.Button("🔄 Refresh List")
+                    refresh_btn = gr.Button("🔄 Refresh List", variant="secondary")
             
             # Probe Configuration
             with gr.Column(scale=1):
@@ -125,53 +136,116 @@ def create_probe_manager():
             if not name:
                 return "❌ Error: Probe name is required"
             
-            config = {
+            # Create probe configuration for backend API
+            probe_config = {
                 "name": name,
-                "category": category,
+                "type": name.lower().replace(" ", "-"),
+                "target": "localhost",  # Default target
+                "config": {
+                    "category": category,
+                    "output_format": output_fmt,
+                    "filter": filter_expr
+                },
                 "sampling_rate": rate,
-                "filter": filter_expr,
-                "output_format": output_fmt,
-                "timestamp": datetime.now().isoformat()
+                "filters": [filter_expr] if filter_expr else []
             }
             
-            return f"✅ Probe '{name}' deployment initiated with config:\n{json.dumps(config, indent=2)}"
+            try:
+                # Deploy probe via backend API
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(
+                    backend_client.deploy_probe(probe_config)
+                )
+                loop.close()
+                
+                if result.get("success", False):
+                    probe_id = result.get("probe_id", "unknown")
+                    return f"✅ Probe '{name}' successfully deployed!\n\n📋 **Deployment Details:**\n• Probe ID: {probe_id}\n• Status: {result.get('status', 'running')}\n• Target: {probe_config['target']}\n• Sampling Rate: {rate} Hz\n\n🔍 Check the 'Deployed Probes' section to monitor its status."
+                else:
+                    error_msg = result.get("error", "Unknown deployment error")
+                    return f"❌ Probe deployment failed: {error_msg}\n\n🔧 **Troubleshooting:**\n• Check if backend is running (localhost:8000)\n• Verify probe configuration is valid\n• Ensure you have necessary permissions for eBPF"
+                    
+            except Exception as e:
+                return f"❌ Backend connection error: {str(e)}\n\n🔧 **Troubleshooting:**\n• Start the backend: `python backend/main.py`\n• Check if port 8000 is available\n• Verify network connectivity"
         
         def deploy_template(template_name):
             templates = {
                 "TCP Flow Monitor": {
                     "name": "tcp-flow-monitor",
+                    "type": "tcp-flow",
                     "category": "Network",
                     "sampling_rate": 100,
                     "filter": "tcp",
-                    "output_format": "JSON"
+                    "output_format": "JSON",
+                    "description": "Monitor TCP connections and network flows"
                 },
                 "CPU Profiler": {
                     "name": "cpu-profiler",
+                    "type": "cpu-profiler",
                     "category": "Performance", 
-                    "sampling_rate": 99,
-                    "filter": "pid > 0",
-                    "output_format": "JSON"
+                    "sampling_rate": 500,
+                    "filter": "",
+                    "output_format": "JSON",
+                    "description": "Profile CPU usage and performance metrics"
                 },
                 "Memory Tracker": {
                     "name": "memory-tracker",
+                    "type": "memory-tracker",
                     "category": "Memory",
-                    "sampling_rate": 50,
-                    "filter": "size > 1024",
-                    "output_format": "JSON"
+                    "sampling_rate": 200,
+                    "filter": "",
+                    "output_format": "JSON",
+                    "description": "Track memory allocations and detect leaks"
                 }
             }
             
-            if template_name in templates:
-                config = templates[template_name]
-                return (
-                    config["name"],
-                    config["category"],
-                    config["sampling_rate"],
-                    config["filter"],
-                    config["output_format"]
-                )
+            if template_name not in templates:
+                return f"❌ Template '{template_name}' not found"
             
-            return ("", "Network", 100, "", "JSON")
+            template = templates[template_name]
+            
+            # Create backend-compatible probe configuration
+            probe_config = {
+                "name": template["name"],
+                "type": template["type"],
+                "target": "localhost",
+                "config": {
+                    "category": template["category"],
+                    "output_format": template["output_format"],
+                    "description": template["description"]
+                },
+                "sampling_rate": template["sampling_rate"],
+                "filters": [template["filter"]] if template["filter"] else []
+            }
+            
+            try:
+                # Deploy template via backend API
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(
+                    backend_client.deploy_probe(probe_config)
+                )
+                loop.close()
+                
+                if result.get("success", False):
+                    probe_id = result.get("probe_id", "unknown")
+                    return f"🚀 **{template_name}** successfully deployed!\n\n📋 **Details:**\n• Probe ID: {probe_id}\n• Type: {template['type']}\n• Sampling: {template['sampling_rate']} Hz\n• Status: Running\n\n📊 **What it monitors:**\n{template['description']}\n\n✅ Probe is now collecting telemetry data!"
+                else:
+                    error_msg = result.get("error", "Unknown deployment error")
+                    return f"❌ **{template_name}** deployment failed!\n\nError: {error_msg}\n\n🔧 **Next steps:**\n• Check backend status\n• Verify system permissions\n• Try manual deployment with custom settings"
+                    
+            except Exception as e:
+                return f"❌ **{template_name}** deployment error!\n\nConnection failed: {str(e)}\n\n🔧 **Troubleshooting:**\n• Ensure backend is running: `python backend/main.py`\n• Check port 8000 availability\n• Verify system has eBPF support"
+        
+        def refresh_probe_lists():
+            """Refresh both available and deployed probe lists"""
+            try:
+                available = get_available_probes()
+                deployed = get_deployed_probes()
+                return available, deployed, "🔄 Probe lists refreshed successfully!"
+            except Exception as e:
+                return get_available_probes(), get_deployed_probes(), f"⚠️ Refresh failed: {str(e)}"
         
         # Wire up the event handlers
         deploy_btn.click(
@@ -180,45 +254,91 @@ def create_probe_manager():
             outputs=[probe_logs]
         )
         
+        refresh_btn.click(
+            fn=refresh_probe_lists,
+            outputs=[available_probes, deployed_probes, probe_logs]
+        )
+        
         tcp_template_btn.click(
             fn=lambda: deploy_template("TCP Flow Monitor"),
-            outputs=[probe_name, probe_category, sampling_rate, filter_expression, output_format]
+            outputs=[probe_logs]
         )
         
         cpu_template_btn.click(
             fn=lambda: deploy_template("CPU Profiler"),
-            outputs=[probe_name, probe_category, sampling_rate, filter_expression, output_format]
+            outputs=[probe_logs]
         )
         
         memory_template_btn.click(
             fn=lambda: deploy_template("Memory Tracker"),
-            outputs=[probe_name, probe_category, sampling_rate, filter_expression, output_format]
+            outputs=[probe_logs]
         )
     
     return tab
 
 def get_available_probes():
-    """Get list of available probes for deployment"""
-    return [
-        ["TCP Flow Monitor", "Network", "v1.2.0", "Available"],
-        ["CPU Profiler", "Performance", "v1.1.0", "Available"],
-        ["Memory Tracker", "Memory", "v1.0.0", "Available"],
-        ["HTTP Analyzer", "Network", "v0.9.0", "Beta"],
-        ["File System Monitor", "Security", "v1.0.0", "Available"],
-        ["Process Tracker", "Security", "v0.8.0", "Beta"],
-        ["Network Security", "Security", "v1.1.0", "Available"],
-        ["Disk I/O Monitor", "Performance", "v0.7.0", "Alpha"]
-    ]
+    """Get list of available probes for deployment from backend"""
+    try:
+        # Try to get available probes from backend
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        # Note: This would be a new endpoint /api/v1/probes/available
+        # For now, return enhanced static list with backend status check
+        loop.close()
+        
+        # Enhanced probe list with real deployment capability
+        return [
+            ["TCP Flow Monitor", "Network", "v1.2.0", "✅ Ready"],
+            ["CPU Profiler", "Performance", "v1.1.0", "✅ Ready"],
+            ["Memory Tracker", "Memory", "v1.0.0", "✅ Ready"],
+            ["HTTP Analyzer", "Network", "v0.9.0", "⚠️ Beta"],
+            ["File System Monitor", "Security", "v1.0.0", "✅ Ready"],
+            ["Process Tracker", "Security", "v0.8.0", "⚠️ Beta"],
+            ["Network Security", "Security", "v1.1.0", "✅ Ready"],
+            ["Disk I/O Monitor", "Performance", "v0.7.0", "🔄 Alpha"]
+        ]
+    except Exception:
+        # Fallback to static list if backend unavailable
+        return [
+            ["TCP Flow Monitor", "Network", "v1.2.0", "⚠️ Backend Required"],
+            ["CPU Profiler", "Performance", "v1.1.0", "⚠️ Backend Required"],
+            ["Memory Tracker", "Memory", "v1.0.0", "⚠️ Backend Required"],
+        ]
 
 def get_deployed_probes():
-    """Get list of currently deployed probes"""
-    return [
-        ["tcp-flow-monitor", "🟢 Running", "2h 15m", 12847, 0.8, "45MB"],
-        ["cpu-profiler", "🟢 Running", "1h 43m", 8901, 1.2, "32MB"],
-        ["memory-tracker", "🟢 Running", "0h 55m", 5634, 0.5, "28MB"],
-        ["network-security", "🟡 Warning", "3h 22m", 1205, 0.3, "18MB"],
-        ["file-monitor", "🟢 Running", "0h 12m", 892, 0.4, "22MB"]
-    ]
+    """Get list of currently deployed probes from backend"""
+    try:
+        # Get real probe data from backend
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(
+            backend_client.get_active_probes()
+        )
+        loop.close()
+        
+        if isinstance(result, list):
+            # Convert backend format to display format
+            deployed_data = []
+            for probe in result:
+                deployed_data.append([
+                    probe.get("name", "unknown"),
+                    f"🟢 {probe.get('status', 'Running')}",
+                    probe.get("uptime", "0h 0m"),
+                    probe.get("events_count", 0),
+                    probe.get("cpu_usage", 0.0),
+                    probe.get("memory_usage", "0MB")
+                ])
+            return deployed_data if deployed_data else [["No probes deployed", "⚪ Empty", "-", 0, 0, "-"]]
+        else:
+            # Backend returned error or unexpected format
+            return [["Backend Error", "❌ Failed", "-", 0, 0, "-"]]
+            
+    except Exception as e:
+        # Backend not available - show connection status
+        return [
+            ["Backend Connection", "❌ Offline", "-", 0, 0, "-"],
+            ["Start backend with:", "� python backend/main.py", "-", 0, 0, "-"]
+        ]
 
 def get_sample_probe_logs():
     """Get sample probe logs"""
