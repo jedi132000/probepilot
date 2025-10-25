@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class SystemMetricsClient:
     """Client for fetching real system metrics from backend API"""
     
-    def __init__(self, base_url: str = "http://localhost:8001"):
+    def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({"Content-Type": "application/json"})
@@ -208,7 +208,7 @@ class SystemMetricsClient:
         <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 20px; text-align: center;">
             <h4 style="color: #ef4444; margin: 0;">⚠️ Backend Connection Error</h4>
             <p style="color: #ef4444; margin: 10px 0;">Unable to fetch real-time metrics</p>
-            <small style="color: #ef4444; opacity: 0.8;">Please ensure backend is running at http://localhost:8001</small>
+            <small style="color: #ef4444; opacity: 0.8;">Please ensure backend is running at http://localhost:8000</small>
         </div>
         """
     

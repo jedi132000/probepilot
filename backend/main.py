@@ -89,6 +89,15 @@ app.include_router(
     responses={500: {"description": "Historical metrics unavailable"}},
 )
 
+from api.v1 import advanced_analytics
+
+app.include_router(
+    advanced_analytics.router,
+    prefix="/api/v1/analytics",
+    tags=["advanced-analytics"],
+    responses={500: {"description": "Advanced analytics unavailable"}},
+)
+
 @app.get("/", tags=["root"])
 async def root():
     """Root endpoint with API information"""

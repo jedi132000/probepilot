@@ -171,7 +171,7 @@ def get_live_metrics_html():
         probe_count = 0
         try:
             import requests
-            response = requests.get("http://localhost:8001/api/v1/probes/", timeout=1)
+            response = requests.get("http://localhost:8000/api/v1/probes/", timeout=1)
             if response.status_code == 200:
                 probes = response.json()
                 probe_count = len(probes)
@@ -222,7 +222,7 @@ def get_current_system_data():
     try:
         # Try to get data from the alert engine API first
         import requests
-        response = requests.get("http://localhost:8001/api/v1/alerts/health", timeout=3)
+        response = requests.get("http://localhost:8000/api/v1/alerts/health", timeout=3)
         
         if response.status_code == 200:
             api_data = response.json()
@@ -232,7 +232,7 @@ def get_current_system_data():
                 # Get probe data from backend
                 probe_count = 0
                 try:
-                    probe_response = requests.get("http://localhost:8001/api/v1/probes/", timeout=2)
+                    probe_response = requests.get("http://localhost:8000/api/v1/probes/", timeout=2)
                     if probe_response.status_code == 200:
                         probes = probe_response.json()
                         probe_count = len(probes)
@@ -386,7 +386,7 @@ def get_current_recommendations():
         recommendations.append("\n🔧 ProbePilot Actions:")
         try:
             import requests
-            response = requests.get("http://localhost:8001/api/v1/probes/", timeout=2)
+            response = requests.get("http://localhost:8000/api/v1/probes/", timeout=2)
             if response.status_code == 200:
                 probes = response.json()
                 recommendations.append(f"• {len(probes)} active probes collecting real metrics")

@@ -24,6 +24,16 @@ httpx>=0.24.0
 # Data Processing
 pandas>=2.0.0
 numpy>=1.24.0
+scipy>=1.11.0
+scikit-learn>=1.3.0
+
+# Visualization & Analytics
+plotly>=5.15.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# System Monitoring (enhanced)
+psutil>=5.9.0
 
 # Time Series Database
 influxdb-client>=1.37.0

@@ -209,7 +209,7 @@ def get_real_probe_data():
         # Test API connection first
         import requests
         try:
-            test_response = requests.get("http://localhost:8001/api/v1/probes/", timeout=5)
+            test_response = requests.get("http://localhost:8000/api/v1/probes/", timeout=5)
             print(f"DEBUG: Direct API test - Status: {test_response.status_code}")
             print(f"DEBUG: Direct API response: {test_response.text[:200]}")
         except Exception as api_error:
@@ -339,7 +339,7 @@ def advance_probe_state(probe_id):
     try:
         # Use the backend client to advance probe state
         import requests
-        response = requests.post(f"http://localhost:8001/api/v1/probes/{probe_id.strip()}/advance")
+        response = requests.post(f"http://localhost:8000/api/v1/probes/{probe_id.strip()}/advance")
         
         if response.status_code == 200:
             result = response.json()

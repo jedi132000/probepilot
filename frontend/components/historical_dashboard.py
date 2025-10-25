@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Optional
 class HistoricalMetricsDashboard:
     """Dashboard for historical metrics and trend analysis"""
     
-    def __init__(self, backend_url: str = "http://localhost:8001"):
+    def __init__(self, backend_url: str = "http://localhost:8000"):
         self.backend_url = backend_url
     
     def get_metrics_summary(self) -> Dict[str, Any]:

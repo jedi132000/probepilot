@@ -38,6 +38,7 @@ from components.probe_manager import create_probe_manager
 from components.analytics import create_analytics_panel
 from components.copilot import create_ai_copilot
 from components.historical_dashboard import create_historical_metrics_interface, get_historical_insights_html
+from components.advanced_analytics_dashboard import advanced_analytics_dashboard
 from themes.aviation_theme import get_aviation_theme
 from api.backend_client import BackendClient
 
@@ -148,6 +149,10 @@ class ProbePilotApp:
                 # Historical Metrics & Trends
                 with gr.TabItem("📈 Historical Metrics", id="historical"):
                     create_historical_metrics_interface()
+                
+                # Advanced Analytics & Deep Observability
+                with gr.TabItem("🧠 Advanced Analytics", id="advanced-analytics"):
+                    advanced_analytics_dashboard.create_dashboard()
                 
                 # AI Copilot
                 with gr.TabItem("🤖 Copilot", id="copilot"):
@@ -531,7 +536,7 @@ class ProbePilotApp:
             
             # Get recent probe activity from backend
             try:
-                response = requests.get(f"http://localhost:8001/api/v1/probes/")
+                response = requests.get(f"http://localhost:8000/api/v1/probes/")
                 if response.status_code == 200:
                     probes = response.json()
                     if probes:
@@ -620,7 +625,7 @@ class ProbePilotApp:
             probe_id = probe_id.strip()
             
             # Stop the probe
-            response = requests.delete(f"http://localhost:8001/api/v1/probes/{probe_id}")
+            response = requests.delete(f"http://localhost:8000/api/v1/probes/{probe_id}")
             
             if response.status_code == 200:
                 status = f"✅ Successfully stopped probe: {probe_id}"
@@ -650,7 +655,7 @@ class ProbePilotApp:
             probe_id = probe_id.strip()
             
             # Restart the probe
-            response = requests.post(f"http://localhost:8001/api/v1/probes/{probe_id}/restart")
+            response = requests.post(f"http://localhost:8000/api/v1/probes/{probe_id}/restart")
             
             if response.status_code == 200:
                 status = f"♻️ Successfully restarted probe: {probe_id}"
@@ -678,7 +683,7 @@ class ProbePilotApp:
             from datetime import datetime
             
             # Get current probe data
-            response = requests.get("http://localhost:8001/api/v1/probes/")
+            response = requests.get("http://localhost:8000/api/v1/probes/")
             if response.status_code != 200:
                 return None, "❌ Failed to fetch probe data from backend"
                 
@@ -738,7 +743,7 @@ class ProbePilotApp:
             # Deploy probe via backend API using synchronous requests
             
             response = requests.post(
-                "http://localhost:8001/api/v1/probes",
+                "http://localhost:8000/api/v1/probes",
                 json=probe_config_data,
                 headers={"Content-Type": "application/json"},
                 timeout=10
@@ -779,7 +784,7 @@ class ProbePilotApp:
                 try:
                     import time
                     time.sleep(1)  # Brief pause to let probe initialize
-                    status_response = requests.get(f"http://localhost:8001/api/v1/probes/{probe_id}")
+                    status_response = requests.get(f"http://localhost:8000/api/v1/probes/{probe_id}")
                     if status_response.status_code == 200:
                         current_probe = status_response.json()
                         current_status = current_probe.get('status', 'initializing').title()

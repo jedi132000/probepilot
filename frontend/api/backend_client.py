@@ -12,7 +12,7 @@ from datetime import datetime
 class BackendClient:
     """Client for communicating with ProbePilot FastAPI backend"""
     
-    def __init__(self, base_url: str = "http://localhost:8001"):
+    def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.client = httpx.AsyncClient(base_url=base_url)
         
@@ -128,6 +128,8 @@ class BackendClient:
     def __del__(self):
         """Cleanup client connection"""
         try:
-            asyncio.create_task(self.client.aclose())
+            if hasattr(self, 'client') and self.client:
+                # Don't create tasks in __del__ as it causes warnings
+                pass
         except:
             pass

@@ -1,6 +1,7 @@
 """
 Real Probe Management System
 Handles automatic state progression and live system metrics collection
+Enhanced with advanced analytics and deep observability
 """
 
 import asyncio
@@ -10,6 +11,10 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor
+
+# Import advanced analytics and real metrics collector
+from .advanced_analytics import advanced_analytics
+from .real_metrics_collector import RealMetricsCollector
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +57,11 @@ class RealProbeManager:
         self.tasks = [
             asyncio.create_task(self._state_progression_loop()),
             asyncio.create_task(self._metrics_collection_loop()),
-            asyncio.create_task(self._uptime_update_loop())
+            asyncio.create_task(self._uptime_update_loop()),
+            asyncio.create_task(self._advanced_analytics_loop())
         ]
         
-        logger.info("Real Probe Manager started with 3 background tasks")
+        logger.info("Real Probe Manager started with 4 background tasks including advanced analytics")
         
     async def stop(self):
         """Stop the probe manager and cleanup"""
@@ -131,11 +137,14 @@ class RealProbeManager:
         
     async def _metrics_collection_loop(self):
         """Collect real system metrics for running probes"""
+        # Initialize real metrics collector
+        metrics_collector = RealMetricsCollector()
+        
         while self.running:
             try:
                 for probe_id, probe in self.probes.items():
                     if probe.get("status") == "running":
-                        await self._collect_real_metrics(probe_id, probe)
+                        await self._collect_real_metrics(probe_id, probe, metrics_collector)
                 await asyncio.sleep(1)  # Collect metrics every second
             except asyncio.CancelledError:
                 break
@@ -143,31 +152,172 @@ class RealProbeManager:
                 logger.error(f"Error in metrics collection loop: {e}")
                 await asyncio.sleep(5)
                 
-    async def _collect_real_metrics(self, probe_id: str, probe: Dict[str, Any]):
-        """Collect real system metrics based on probe type"""
+    async def _collect_real_metrics(self, probe_id: str, probe: Dict[str, Any], metrics_collector: RealMetricsCollector):
+        """Collect real system metrics using actual system data"""
         probe_type = probe.get("type", "unknown")
         
         try:
-            # Collect metrics based on probe type
-            if probe_type in ["cpu-profiler", "CPU Performance Profiler"]:
-                metrics = await self._collect_cpu_metrics()
-            elif probe_type in ["tcp-flow-monitor", "TCP Flow Monitor"]:
-                metrics = await self._collect_network_metrics()
-            elif probe_type in ["http-latency-tracker", "HTTP Latency Tracker"]:
-                metrics = await self._collect_network_metrics()
-            elif probe_type in ["memory-monitor", "Memory Usage Monitor"]:
-                metrics = await self._collect_memory_metrics()
-            elif probe_type in ["file-system-auditor", "File System Auditor"]:
-                metrics = await self._collect_disk_metrics()
-            else:
-                # Generic system metrics
-                metrics = await self._collect_generic_metrics()
-                
-            # Update probe with real metrics
-            self._update_probe_metrics(probe_id, metrics)
+            # Map probe types to real metrics collection types
+            metrics_type_mapping = {
+                "cpu-profiler": "process",
+                "CPU Performance Profiler": "process",
+                "tcp-flow-monitor": "network", 
+                "TCP Flow Monitor": "network",
+                "http-latency-tracker": "network",
+                "HTTP Latency Tracker": "network",
+                "memory-monitor": "memory",
+                "Memory Usage Monitor": "memory",
+                "file-system-auditor": "disk",
+                "File System Auditor": "disk",
+                "syscall-tracer": "syscall",
+                "kernel-profiler": "kernel",
+                "io-monitor": "disk",
+                "security-monitor": "process",
+                "scheduler-tracer": "kernel"
+            }
             
+            # Get real metrics
+            metrics_type = metrics_type_mapping.get(probe_type, "process")
+            real_data = await metrics_collector.get_real_probe_data(metrics_type)
+            
+            # Extract metrics from real system data
+            if real_data:
+                if metrics_type == "process":
+                    processes = real_data.get('cpu_usage_by_process', [])
+                    memory_procs = real_data.get('memory_usage_by_process', [])
+                    
+                    metrics = {
+                        'cpu_usage': sum([proc[1] for proc in processes[:5]]),  # Top 5 processes
+                        'cpu_count': psutil.cpu_count() or 1,
+                        'memory_percent': sum([proc[1] for proc in memory_procs[:5]]),  # Top 5 processes
+                        'total_processes': real_data.get('total_processes', 0),
+                        'total_threads': real_data.get('total_threads', 0),
+                        'total_fds': real_data.get('total_fds', 0),
+                        'data_size': len(str(real_data)),
+                        'type': 'real_process',
+                        'real_data': real_data
+                    }
+                elif metrics_type == "network":
+                    metrics = {
+                        'bytes_sent': real_data.get('bytes_sent', 0),
+                        'bytes_recv': real_data.get('bytes_recv', 0),
+                        'packets_sent': real_data.get('packets_sent', 0),
+                        'packets_recv': real_data.get('packets_recv', 0),
+                        'total_connections': real_data.get('total_connections', 0),
+                        'established_connections': real_data.get('established_connections', 0),
+                        'listening_connections': real_data.get('listening_connections', 0),
+                        'errors_in': real_data.get('errors_in', 0),
+                        'errors_out': real_data.get('errors_out', 0),
+                        'data_size': len(str(real_data)),
+                        'type': 'real_network',
+                        'real_data': real_data
+                    }
+                elif metrics_type == "memory":
+                    virtual_mem = real_data.get('virtual_memory', {})
+                    swap_mem = real_data.get('swap_memory', {})
+                    metrics = {
+                        'memory_percent': virtual_mem.get('percent', 0),
+                        'memory_available': virtual_mem.get('available', 0),
+                        'memory_used': virtual_mem.get('used', 0),
+                        'memory_total': virtual_mem.get('total', 0),
+                        'swap_percent': swap_mem.get('percent', 0),
+                        'swap_used': swap_mem.get('used', 0),
+                        'memory_pressure': real_data.get('memory_pressure', 0),
+                        'data_size': len(str(real_data)),
+                        'type': 'real_memory',
+                        'real_data': real_data
+                    }
+                elif metrics_type == "disk":
+                    io_counters = real_data.get('io_counters', {})
+                    disk_usage = real_data.get('disk_usage', {})
+                    metrics = {
+                        'read_bytes': io_counters.get('read_bytes', 0),
+                        'write_bytes': io_counters.get('write_bytes', 0),
+                        'read_count': io_counters.get('read_count', 0),
+                        'write_count': io_counters.get('write_count', 0),
+                        'read_time': io_counters.get('read_time', 0),
+                        'write_time': io_counters.get('write_time', 0),
+                        'disk_usage_percent': sum([d.get('percent', 0) for d in disk_usage.values()]) / max(len(disk_usage), 1),
+                        'data_size': len(str(real_data)),
+                        'type': 'real_disk',
+                        'real_data': real_data
+                    }
+                elif metrics_type == "syscall":
+                    metrics = {
+                        'context_switches': real_data.get('context_switches', 0),
+                        'interrupts': real_data.get('interrupts', 0),
+                        'syscalls': real_data.get('syscalls', 0),
+                        'processes': real_data.get('processes', 0),
+                        'active_processes': real_data.get('active_processes', 0),
+                        'data_size': len(str(real_data)),
+                        'type': 'real_syscall',
+                        'real_data': real_data
+                    }
+                elif metrics_type == "kernel":
+                    load_avg = real_data.get('load_average', {})
+                    metrics = {
+                        'context_switches': real_data.get('context_switches', 0),
+                        'interrupts': real_data.get('interrupts', 0),
+                        'load_1min': load_avg.get('1min', 0),
+                        'load_5min': load_avg.get('5min', 0),
+                        'load_15min': load_avg.get('15min', 0),
+                        'uptime': real_data.get('uptime', 0),
+                        'cpu_cores': real_data.get('cpu_cores', 0),
+                        'data_size': len(str(real_data)),
+                        'type': 'real_kernel',
+                        'real_data': real_data
+                    }
+                else:
+                    # Generic real metrics
+                    metrics = {
+                        'data_points': len(str(real_data)),
+                        'data_size': len(str(real_data)),
+                        'type': f'real_{metrics_type}',
+                        'real_data': real_data
+                    }
+                
+                # Update probe with real metrics
+                self._update_probe_metrics(probe_id, metrics)
+                
+                # Also store in advanced analytics
+                analytics_metrics = {
+                    f'real_{metrics_type}': {
+                        str(key): float(value) if isinstance(value, (int, float)) else 0.0
+                        for key, value in metrics.items() 
+                        if isinstance(value, (int, float))
+                    }
+                }
+                await advanced_analytics.store_advanced_metrics(analytics_metrics)
+            else:
+                # Fallback to basic metrics if enhanced collection fails
+                metrics = await self._collect_basic_fallback_metrics(probe_type)
+                self._update_probe_metrics(probe_id, metrics)
+                
         except Exception as e:
-            logger.error(f"Failed to collect metrics for probe {probe_id}: {e}")
+            logger.error(f"Failed to collect enhanced metrics for probe {probe_id}: {e}")
+            # Fallback to basic metrics
+            try:
+                metrics = await self._collect_basic_fallback_metrics(probe_type)
+                self._update_probe_metrics(probe_id, metrics)
+            except Exception as fallback_error:
+                logger.error(f"Fallback metrics collection also failed for {probe_id}: {fallback_error}")
+    
+    async def _collect_basic_fallback_metrics(self, probe_type: str) -> Dict[str, Any]:
+        """Fallback to basic metrics collection if enhanced collection fails"""
+        try:
+            if "cpu" in probe_type.lower():
+                return await self._collect_cpu_metrics()
+            elif "network" in probe_type.lower() or "tcp" in probe_type.lower():
+                return await self._collect_network_metrics()
+            elif "memory" in probe_type.lower():
+                return await self._collect_memory_metrics()
+            elif "file" in probe_type.lower() or "disk" in probe_type.lower():
+                return await self._collect_disk_metrics()
+            else:
+                return await self._collect_generic_metrics()
+        except Exception as e:
+            logger.error(f"Basic fallback metrics collection failed: {e}")
+            return {'type': 'error', 'data_size': 0, 'error': str(e)}
             
     async def _collect_cpu_metrics(self) -> Dict[str, Any]:
         """Collect real CPU metrics"""
@@ -298,6 +448,29 @@ class RealProbeManager:
             except Exception as e:
                 logger.error(f"Error in uptime update loop: {e}")
                 await asyncio.sleep(10)
+    
+    async def _advanced_analytics_loop(self):
+        """Advanced analytics collection and processing loop"""
+        while self.running:
+            try:
+                # Collect comprehensive system metrics
+                advanced_metrics = await advanced_analytics.collect_advanced_system_metrics()
+                await advanced_analytics.store_advanced_metrics(advanced_metrics)
+                
+                # Perform analytics every 5 minutes
+                await asyncio.sleep(300)
+                
+                # Generate insights for running probes
+                if self.probes:
+                    insights = await advanced_analytics.generate_insights_report(hours=1)
+                    logger.debug(f"Generated advanced insights: {insights.get('summary', {})}")
+                    
+                await asyncio.sleep(300)  # Run every 5 minutes
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in advanced analytics loop: {e}")
+                await asyncio.sleep(60)  # Wait 1 minute on error
                 
     def get_probe_data(self, probe_id: str) -> Dict[str, Any]:
         """Get current probe data"""
@@ -306,6 +479,14 @@ class RealProbeManager:
     def get_all_probes(self) -> Dict[str, Dict[str, Any]]:
         """Get all probe data"""
         return self.probes.copy()
+    
+    async def get_advanced_analytics_dashboard(self, hours: int = 24) -> str:
+        """Get advanced analytics dashboard HTML"""
+        return await advanced_analytics.generate_comprehensive_dashboard(hours)
+    
+    async def get_system_insights(self, hours: int = 24) -> Dict[str, Any]:
+        """Get comprehensive system insights"""
+        return await advanced_analytics.generate_insights_report(hours)
 
 # Global probe manager instance
 probe_manager = RealProbeManager()
