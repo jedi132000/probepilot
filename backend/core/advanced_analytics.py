@@ -524,7 +524,7 @@ class AdvancedAnalyticsEngine:
             
             df = pd.read_sql_query(query, conn, params=[metric_name, since_time.isoformat()])
             
-            if len(df) < 20:  # Need sufficient data for prediction
+            if len(df) < 5:  # Need at least 5 data points for prediction
                 return None
                 
             df['timestamp'] = pd.to_datetime(df['timestamp'])

@@ -141,7 +141,10 @@ async def get_metric_predictions(
         prediction = await advanced_analytics.predict_metric_values(metric_name, hours_history)
         
         if not prediction:
-            raise HTTPException(status_code=404, detail=f"Insufficient data for predictions of {metric_name}")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Insufficient historical data for predictions of {metric_name}. Need at least 5 data points. Try collecting more data first."
+            )
         
         return {
             "success": True,
