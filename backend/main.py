@@ -12,9 +12,10 @@ import logging
 from typing import List, Dict, Any, Optional
 
 # Import API routers
-from api.v1 import probes, metrics, system, copilot
+from api.v1 import probes, metrics, system, copilot, events
 from core.config import get_settings
 from core.database import get_database
+from core.probe_manager import probe_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -65,6 +66,20 @@ app.include_router(
     prefix="/api/v1/copilot",
     tags=["copilot"],
     responses={500: {"description": "AI service unavailable"}},
+)
+
+app.include_router(
+    events.router,
+    prefix="/api/v1",
+    tags=["events"],
+    responses={500: {"description": "Events service unavailable"}},
+)
+
+app.include_router(
+    events.router,
+    prefix="/api/v1",
+    tags=["events"],
+    responses={500: {"description": "Events service unavailable"}},
 )
 
 @app.get("/", tags=["root"])
@@ -125,6 +140,19 @@ async def startup_event():
     logger.info("🛩️ Starting ProbePilot Mission Control API...")
     logger.info("📡 Initializing probe management system...")
     logger.info("🔍 Setting up telemetry processing engine...")
+    
+    # Initialize Redis database connection
+    db = get_database()
+    db.connect()
+    if db.is_connected():
+        logger.info("🔗 Connected to Redis database successfully")
+    else:
+        logger.warning("⚠️ Failed to connect to Redis - using in-memory storage")
+    
+    # Start the real probe manager
+    await probe_manager.start()
+    logger.info("🚀 Real Probe Manager started - probes will automatically progress and collect live metrics")
+    
     logger.info("🤖 Connecting AI Copilot services...")
     logger.info("✅ ProbePilot API ready for takeoff!")
 
@@ -134,6 +162,16 @@ async def shutdown_event():
     logger.info("🛬 ProbePilot API landing safely...")
     logger.info("📡 Stopping active probes...")
     logger.info("💾 Saving telemetry data...")
+    
+    # Stop the probe manager
+    await probe_manager.stop()
+    logger.info("🔴 Real Probe Manager stopped")
+    
+    # Disconnect from Redis
+    db = get_database()
+    db.disconnect()
+    logger.info("🔗 Disconnected from Redis database")
+    
     logger.info("✅ ProbePilot API shutdown complete")
 
 if __name__ == "__main__":

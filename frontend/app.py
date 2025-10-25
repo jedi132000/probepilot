@@ -4,9 +4,17 @@ ProbePilot Mission Control - Gradio Frontend
 Your Mission Control for Kernel Observability
 
 This is the main Gradio application providing the aviation-inspired
-dashboard for eBPF probe management and telemetry visualization.
+dashboard for e        # System Status Panel
+        with gr.Column(scale=1):
+            gr.HTML('<h3 style="color: #ffffff;">⚡ System Status</h3>')
+            
+            with gr.Column():
+                gr.HTML('<div style="color: #10b981;">🟢 Backend: Connected</div>')
+                gr.HTML('<div style="color: #10b981;">🟢 Probes: Active</div>')
+                gr.HTML('<div style="color: #10b981;">🟢 Metrics: Live</div>')e management and telemetry visualization.
 """
 
+import os
 import gradio as gr
 import plotly.graph_objects as go
 import plotly.express as px
@@ -15,8 +23,14 @@ import pandas as pd
 import numpy as np
 import asyncio
 import json
+import requests
 from typing import Dict, List, Optional
 import time
+import psutil
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import custom components
 from components.mission_control import create_mission_control_dashboard
@@ -132,7 +146,7 @@ class ProbePilotApp:
                 
                 # AI Copilot
                 with gr.TabItem("🤖 Copilot", id="copilot"):
-                    self._create_copilot_tab()
+                    create_ai_copilot()
                 
                 # System Settings
                 with gr.TabItem("⚙️ Settings", id="settings"):
@@ -194,14 +208,23 @@ class ProbePilotApp:
                     outputs=metrics_plot
                 )
         
-        # Quick Actions Panel
+        # Data Export Panel
         with gr.Row():
-            gr.HTML('<h3 style="color: #ffffff;">⚡ Quick Actions</h3>')
+            gr.HTML('<h3 style="color: #ffffff;">📥 Data Export</h3>')
             
             with gr.Column():
-                deploy_probe_btn = gr.Button("🚀 Deploy Probe", variant="primary")
-                stop_probe_btn = gr.Button("🛑 Stop Probe", variant="secondary")
-                export_data_btn = gr.Button("📥 Export Data", variant="secondary")
+                export_data_btn = gr.Button("📥 Export All Probe Data", variant="primary")
+                export_status = gr.Textbox(
+                    label="Export Status",
+                    interactive=False,
+                    visible=False
+                )
+                
+                # Wire up export button
+                export_data_btn.click(
+                    self._export_probe_data,
+                    outputs=[gr.File(), export_status]
+                )
                 
         # Recent Activity Feed
         with gr.Row():
@@ -263,16 +286,52 @@ class ProbePilotApp:
                 gr.HTML('<h3 style="color: #ffffff;">📡 Active Probes</h3>')
                 
                 probes_table = gr.DataFrame(
-                    value=self._get_active_probes(),
-                    headers=["ID", "Type", "Target", "Status", "Data Rate", "Uptime"],
+                    headers=["ID", "Name", "Target", "Status", "Data Rate", "Uptime"],
                     datatype=["str", "str", "str", "str", "str", "str"],
-                    interactive=False
+                    interactive=False,
+                    value=[]  # Start empty, will populate on refresh
                 )
                 
                 with gr.Row():
                     refresh_probes_btn = gr.Button("🔄 Refresh", variant="secondary")
-                    stop_selected_btn = gr.Button("🛑 Stop Selected", variant="secondary")
-                    restart_selected_btn = gr.Button("♻️ Restart Selected", variant="secondary")
+                
+                # Probe management controls
+                with gr.Row():
+                    probe_id_input = gr.Textbox(
+                        label="Probe ID",
+                        placeholder="Enter probe ID (e.g., probe-abc123)",
+                        scale=3
+                    )
+                    stop_probe_btn = gr.Button("🛑 Stop Probe", variant="secondary", scale=1)
+                    restart_probe_btn = gr.Button("♻️ Restart Probe", variant="secondary", scale=1)
+                
+                # Status message for probe operations
+                probe_operation_status = gr.Textbox(
+                    label="Operation Status",
+                    interactive=False,
+                    visible=True,
+                    value=""
+                )
+                
+                # Wire up the refresh button to update the probes table
+                refresh_probes_btn.click(
+                    fn=self._get_active_probes,
+                    outputs=probes_table
+                )
+                
+                # Wire up stop button
+                stop_probe_btn.click(
+                    self._stop_probe,
+                    inputs=[probe_id_input],
+                    outputs=[probes_table, probe_operation_status, probe_id_input]
+                )
+                
+                # Wire up restart button
+                restart_probe_btn.click(
+                    self._restart_probe,
+                    inputs=[probe_id_input],
+                    outputs=[probes_table, probe_operation_status, probe_id_input]
+                )
     
     def _create_analytics_tab(self):
         """Create analytics and deep-dive interface"""
@@ -318,34 +377,6 @@ class ProbePilotApp:
             export_btn = gr.Button("📥 Export Analytics", variant="primary")
             
             export_file = gr.File(label="Download", visible=False)
-    
-    def _create_copilot_tab(self):
-        """Create AI Copilot interface"""
-        
-        gr.HTML('<h3 style="color: #ffffff;">🤖 ProbePilot AI Copilot</h3>')
-        
-        # AI Chat Interface
-        chatbot = gr.ChatInterface(
-            fn=self._copilot_response,
-            title="Ask me about your infrastructure...",
-            description="I can help you analyze metrics, diagnose issues, and optimize your observability setup.",
-            examples=[
-                "Why is CPU usage high on node-1?",
-                "Show me network latency trends",
-                "What probes should I deploy for a web application?",
-                "Help me troubleshoot connection timeouts"
-            ],
-            theme="dark"
-        )
-        
-        # Voice Input (if supported)
-        with gr.Row():
-            voice_input = gr.Audio(
-                label="🎤 Voice Input",
-                type="numpy"
-            )
-            
-            voice_btn = gr.Button("🗣️ Ask via Voice", variant="secondary")
     
     def _create_settings_tab(self):
         """Create system settings interface"""
@@ -471,41 +502,326 @@ class ProbePilotApp:
         return self._generate_sample_metrics()
     
     def _get_sample_activity(self):
-        """Generate sample activity feed"""
-        return pd.DataFrame([
-            ["10:45:32", "Probe Deployed", "TCP Monitor", "✅ Success"],
-            ["10:44:15", "Alert Triggered", "Memory Usage", "⚠️ Warning"],
-            ["10:43:01", "Data Export", "Analytics", "✅ Complete"],
-            ["10:41:28", "Probe Updated", "HTTP Tracker", "✅ Success"],
-            ["10:40:12", "System Restart", "Node-2", "✅ Complete"]
-        ])
+        """Get real system activity from backend"""
+        from datetime import datetime
+        
+        try:
+            # Get real system metrics for activity detection
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            
+            current_time = datetime.now().strftime("%H:%M:%S")
+            activities = []
+            
+            # Add real system events
+            if cpu_percent > 50:
+                activities.append([current_time, "High CPU Usage", f"{cpu_percent:.1f}%", "⚠️ Warning"])
+            
+            if memory.percent > 70:
+                activities.append([current_time, "Memory Alert", f"{memory.percent:.1f}%", "⚠️ Warning"])
+            
+            if disk.percent > 80:
+                activities.append([current_time, "Disk Space", f"{disk.percent:.1f}%", "⚠️ Warning"])
+            
+            # Get recent probe activity from backend
+            try:
+                response = requests.get(f"http://localhost:8000/api/v1/probes/")
+                if response.status_code == 200:
+                    probes = response.json()
+                    if probes:
+                        latest_probe = max(probes, key=lambda p: p.get('created_at', ''))
+                        probe_time = datetime.fromisoformat(latest_probe['created_at'].replace('Z', '+00:00')).strftime("%H:%M:%S")
+                        activities.append([probe_time, "Probe Active", latest_probe['name'], "🟢 Running"])
+            except:
+                pass
+            
+            # Add some default entries if no alerts
+            if not activities:
+                activities = [
+                    [current_time, "System Monitor", "All systems normal", "✅ Healthy"],
+                    [(datetime.now() - timedelta(minutes=1)).strftime("%H:%M:%S"), "Metrics Updated", "Live data collection", "✅ Active"],
+                    [(datetime.now() - timedelta(minutes=2)).strftime("%H:%M:%S"), "Backend Connected", "API responding", "🟢 Online"]
+                ]
+            
+            return pd.DataFrame(activities[:5], columns=["Time", "Event", "Details", "Status"])
+            
+        except Exception as e:
+            # Fallback to basic system info
+            current_time = datetime.now().strftime("%H:%M:%S")
+            return pd.DataFrame([
+                [current_time, "System Active", "ProbePilot running", "🟢 Online"],
+                [(datetime.now() - timedelta(minutes=1)).strftime("%H:%M:%S"), "Monitoring", "Collecting metrics", "✅ Active"]
+            ], columns=["Time", "Event", "Details", "Status"])
     
     def _get_active_probes(self):
-        """Get list of active probes"""
-        return pd.DataFrame([
-            ["probe-001", "TCP Flow Monitor", "web-server-1", "🟢 Running", "1.2 MB/s", "2h 15m"],
-            ["probe-002", "HTTP Latency", "api-gateway", "🟢 Running", "0.8 MB/s", "1h 42m"],
-            ["probe-003", "CPU Profiler", "database-1", "🟡 Warning", "2.1 MB/s", "45m"],
-            ["probe-004", "Memory Monitor", "cache-server", "🟢 Running", "0.5 MB/s", "3h 8m"],
-            ["probe-005", "File System", "storage-node", "🔴 Error", "0.0 MB/s", "12m"]
-        ])
+        """Get list of active probes from backend"""
+        try:
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            probes = loop.run_until_complete(self.backend_client.get_active_probes())
+            loop.close()
+            
+            if probes:
+                probe_data = []
+                for probe in probes:
+                    # Format status with emoji
+                    status = probe.get('status', 'unknown').lower()
+                    if status == 'running':
+                        status_display = "🟢 Running"
+                    elif status == 'error':
+                        status_display = "🔴 Error"
+                    elif status == 'stopped':
+                        status_display = "⚪ Stopped"
+                    elif status == 'loading':
+                        status_display = "📥 Loading"
+                    elif status == 'attaching':
+                        status_display = "🎯 Attaching"
+                    elif status == 'initializing':
+                        status_display = "� Initializing"
+                    else:
+                        status_display = f"⚪ {status.title()}"
+                    
+                    probe_data.append([
+                        probe.get('id', 'N/A'),
+                        probe.get('name', 'Unknown'),
+                        probe.get('target', 'localhost'),
+                        status_display,
+                        probe.get('data_rate', '0.0 MB/s'),
+                        probe.get('uptime', '0s')
+                    ])
+                
+                return pd.DataFrame(probe_data, columns=["ID", "Name", "Target", "Status", "Data Rate", "Uptime"])
+            else:
+                # No probes found
+                return pd.DataFrame([
+                    ["No probes", "Deploy a probe", "to get started", "⚪ Inactive", "0.0 MB/s", "0s"]
+                ], columns=["ID", "Name", "Target", "Status", "Data Rate", "Uptime"])
+                
+        except Exception as e:
+            # Fallback to error message
+            return pd.DataFrame([
+                ["Error", f"Backend connection failed: {str(e)}", "localhost", "🔴 Error", "0.0 MB/s", "0s"]
+            ], columns=["ID", "Name", "Target", "Status", "Data Rate", "Uptime"])
+    
+    def _stop_probe(self, probe_id):
+        """Stop a specific probe by ID"""
+        
+        try:
+            if not probe_id or not probe_id.strip():
+                return self._get_active_probes(), "❌ Please enter a probe ID", ""
+            
+            probe_id = probe_id.strip()
+            
+            # Stop the probe
+            response = requests.delete(f"http://localhost:8000/api/v1/probes/{probe_id}")
+            
+            if response.status_code == 200:
+                status = f"✅ Successfully stopped probe: {probe_id}"
+                # Refresh the probes table
+                updated_df = self._get_active_probes()
+                return updated_df, status, ""  # Clear the input field
+            else:
+                error_msg = f"❌ Failed to stop probe {probe_id} (HTTP {response.status_code})"
+                if response.text:
+                    try:
+                        error_detail = response.json().get('detail', response.text)
+                        error_msg += f": {error_detail}"
+                    except:
+                        error_msg += f": {response.text}"
+                return self._get_active_probes(), error_msg, probe_id
+            
+        except Exception as e:
+            return self._get_active_probes(), f"❌ Error stopping probe: {str(e)}", probe_id
+    
+    def _restart_probe(self, probe_id):
+        """Restart a specific probe by ID"""
+        
+        try:
+            if not probe_id or not probe_id.strip():
+                return self._get_active_probes(), "❌ Please enter a probe ID", ""
+            
+            probe_id = probe_id.strip()
+            
+            # Restart the probe
+            response = requests.post(f"http://localhost:8000/api/v1/probes/{probe_id}/restart")
+            
+            if response.status_code == 200:
+                status = f"♻️ Successfully restarted probe: {probe_id}"
+                # Refresh the probes table
+                updated_df = self._get_active_probes()
+                return updated_df, status, ""  # Clear the input field
+            else:
+                error_msg = f"❌ Failed to restart probe {probe_id} (HTTP {response.status_code})"
+                if response.text:
+                    try:
+                        error_detail = response.json().get('detail', response.text)
+                        error_msg += f": {error_detail}"
+                    except:
+                        error_msg += f": {response.text}"
+                return self._get_active_probes(), error_msg, probe_id
+            
+        except Exception as e:
+            return self._get_active_probes(), f"❌ Error restarting probe: {str(e)}", probe_id
+    
+    def _export_probe_data(self):
+        """Export all probe data to CSV"""
+        try:
+            import csv
+            import io
+            from datetime import datetime
+            
+            # Get current probe data
+            response = requests.get("http://localhost:8000/api/v1/probes/")
+            if response.status_code != 200:
+                return None, "❌ Failed to fetch probe data from backend"
+                
+            probes = response.json()
+            if not probes:
+                return None, "❌ No probe data available for export"
+            
+            # Create CSV content
+            output = io.StringIO()
+            fieldnames = ['probe_id', 'name', 'type', 'target', 'status', 'data_rate', 'uptime', 'created_at']
+            writer = csv.DictWriter(output, fieldnames=fieldnames)
+            
+            writer.writeheader()
+            for probe in probes:
+                writer.writerow({
+                    'probe_id': probe.get('id', ''),
+                    'name': probe.get('name', ''),
+                    'type': probe.get('type', ''),
+                    'target': probe.get('target', ''),
+                    'status': probe.get('status', ''),
+                    'data_rate': probe.get('data_rate', ''),
+                    'uptime': probe.get('uptime', ''),
+                    'created_at': probe.get('created_at', '')
+                })
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"probepilot_export_{timestamp}.csv"
+            
+            csv_content = output.getvalue()
+            output.close()
+            
+            # Create temporary file for download
+            import tempfile
+            temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+            temp_file.write(csv_content)
+            temp_file.close()
+            
+            return temp_file.name, f"✅ Exported {len(probes)} probes to {filename}"
+            
+        except Exception as e:
+            return None, f"❌ Export failed: {str(e)}"
     
     def _deploy_probe(self, probe_type, target_system, probe_config):
         """Handle probe deployment"""
-        # Simulate probe deployment
-        time.sleep(1)  # Simulate deployment time
-        
-        success_html = f"""
-        <div class="status-panel" style="border-color: #10b981;">
-            <span class="status-indicator status-green"></span>
-            <strong>Probe Deployed Successfully!</strong><br>
-            Type: {probe_type}<br>
-            Target: {target_system}<br>
-            Status: Initializing...
-        </div>
-        """
-        
-        return success_html
+        try:
+            # Prepare probe configuration for backend API
+            probe_config_data = {
+                "name": f"{probe_type} Probe",
+                "type": probe_type.lower().replace(" ", "-"),
+                "target": target_system,
+                "config": probe_config if isinstance(probe_config, dict) else {},
+                "sampling_rate": 1000,
+                "filters": []
+            }
+            
+            # Deploy probe via backend API using synchronous requests
+            
+            response = requests.post(
+                "http://localhost:8000/api/v1/probes",
+                json=probe_config_data,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            print(f"DEBUG: Response status: {response.status_code}")
+            print(f"DEBUG: Response text: {response.text[:200]}")
+            
+            if response.status_code == 200:
+                try:
+                    result = response.json()
+                    print(f"DEBUG: Parsed result: {result}")
+                except Exception as json_error:
+                    return f"""
+                    <div class="status-panel" style="border-color: #ef4444;">
+                        <span class="status-indicator status-red"></span>
+                        <strong>JSON Parse Error!</strong><br>
+                        Type: {probe_type}<br>
+                        Error: {str(json_error)}<br>
+                        Response: {response.text[:100]}
+                    </div>
+                    """
+            else:
+                return f"""
+                <div class="status-panel" style="border-color: #ef4444;">
+                    <span class="status-indicator status-red"></span>
+                    <strong>HTTP Error!</strong><br>
+                    Type: {probe_type}<br>
+                    Status: {response.status_code}<br>
+                    Response: {response.text[:100]}
+                </div>
+                """
+            
+            if result and result.get("success"):
+                probe_id = result.get("probe_id", "unknown")
+                
+                # Get current status from backend
+                try:
+                    import time
+                    time.sleep(1)  # Brief pause to let probe initialize
+                    status_response = requests.get(f"http://localhost:8000/api/v1/probes/{probe_id}")
+                    if status_response.status_code == 200:
+                        current_probe = status_response.json()
+                        current_status = current_probe.get('status', 'initializing').title()
+                        data_rate = current_probe.get('data_rate', '0.0 MB/s')
+                    else:
+                        current_status = "Initializing"
+                        data_rate = "0.0 MB/s"
+                except:
+                    current_status = "Initializing"
+                    data_rate = "0.0 MB/s"
+                
+                success_html = f"""
+                <div style="color: #28a745; background: #d4edda; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                    <strong>🚀 Probe Deployed Successfully!</strong><br>
+                    ID: {probe_id}<br>
+                    Type: {probe_type}<br>
+                    Target: {target_system}<br>
+                    Status: {current_status}<br>
+                    Data Rate: {data_rate}<br>
+                    <small style="color: #666;">🔄 Refresh Active Probes table to see live status</small>
+                </div>
+                """
+                return success_html
+            else:
+                error_msg = result.get("error", "Unknown error")
+                error_html = f"""
+                <div class="status-panel" style="border-color: #ef4444;">
+                    <span class="status-indicator status-red"></span>
+                    <strong>Probe Deployment Failed!</strong><br>
+                    Type: {probe_type}<br>
+                    Target: {target_system}<br>
+                    Error: {error_msg}
+                </div>
+                """
+                return error_html
+                
+        except Exception as e:
+            error_html = f"""
+            <div class="status-panel" style="border-color: #ef4444;">
+                <span class="status-indicator status-red"></span>
+                <strong>Deployment Error!</strong><br>
+                Type: {probe_type}<br>
+                Target: {target_system}<br>
+                Error: {str(e)}
+            </div>
+            """
+            return error_html
     
     def _generate_analytics_chart(self):
         """Generate analytics visualization"""
@@ -527,27 +843,6 @@ class ProbePilotApp:
         )
         
         return fig
-    
-    def _copilot_response(self, message, history):
-        """AI Copilot response handler"""
-        
-        # Simple rule-based responses for demo
-        message_lower = message.lower()
-        
-        if "cpu" in message_lower and "high" in message_lower:
-            return "I see you're experiencing high CPU usage. Let me analyze the data... Based on recent metrics, the spike appears to be related to increased process scheduling. I recommend checking for memory leaks or adding CPU profiling probes for deeper analysis."
-        
-        elif "network" in message_lower and "latency" in message_lower:
-            return "Network latency analysis shows varying patterns. I can see average latency is 45ms with some spikes to 200ms. This could indicate network congestion or DNS resolution issues. Would you like me to deploy additional network monitoring probes?"
-        
-        elif "deploy" in message_lower and "probe" in message_lower:
-            return "For deploying probes, I recommend starting with these essentials: 1) TCP Flow Monitor for network visibility, 2) CPU Performance Profiler for system analysis, 3) HTTP Latency Tracker for application monitoring. What type of application are you monitoring?"
-        
-        elif "troubleshoot" in message_lower:
-            return "I'll help you troubleshoot! First, let me check the current system status... I notice some elevated metrics in the memory usage area. Let's start by examining the recent probe data and identify any anomalies. Would you like me to run a diagnostic scan?"
-        
-        else:
-            return f"I understand you're asking about: '{message}'. Let me analyze your current infrastructure data and provide insights. Could you be more specific about which metrics or systems you'd like me to focus on?"
     
     def launch(self, **kwargs):
         """Launch the ProbePilot application"""

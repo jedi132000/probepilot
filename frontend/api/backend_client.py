@@ -31,7 +31,7 @@ class BackendClient:
     async def get_active_probes(self) -> List[Dict[str, Any]]:
         """Get list of currently active probes"""
         try:
-            response = await self.client.get("/api/v1/probes")
+            response = await self.client.get("/api/v1/probes/")
             return response.json()
         except Exception as e:
             return []
@@ -39,7 +39,33 @@ class BackendClient:
     async def deploy_probe(self, probe_config: Dict[str, Any]) -> Dict[str, Any]:
         """Deploy a new eBPF probe"""
         try:
-            response = await self.client.post("/api/v1/probes", json=probe_config)
+            response = await self.client.post("/api/v1/probes/", json=probe_config)
+            
+            # Check if response is successful
+            if response.status_code >= 200 and response.status_code < 300:
+                try:
+                    return response.json()
+                except Exception as json_error:
+                    return {
+                        "success": False,
+                        "error": f"JSON parsing error: {str(json_error)}. Response: {response.text[:100]}"
+                    }
+            else:
+                return {
+                    "success": False,
+                    "error": f"HTTP {response.status_code}: {response.text[:100]}"
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Connection error: {str(e)}"
+            }
+    
+    async def advance_probe_state(self, probe_id: str) -> Dict[str, Any]:
+        """Advance probe to next deployment state"""
+        try:
+            response = await self.client.post(f"/api/v1/probes/{probe_id}/advance")
             return response.json()
         except Exception as e:
             return {

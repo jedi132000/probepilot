@@ -234,9 +234,9 @@ Focus on practical, actionable deployment guidance."""
 • Memory allocation shows typical application behavior
 
 **Recommendations:**
-1. Monitor nginx process for elevated CPU usage
-2. Consider implementing connection pooling
-3. Review database query performance metrics
+1. Monitor system processes for elevated CPU usage
+2. Consider implementing connection pooling for services
+3. Review system call performance metrics
 4. Enable compression for static assets
 
 **Next Steps:**
@@ -282,7 +282,7 @@ Focus on practical, actionable deployment guidance."""
 
 **Traffic Patterns:**
 • HTTPS: 60% of total traffic
-• Database connections: Stable connection pool
+• Service connections: Stable connection pool
 • API endpoints: Normal request distribution
 
 **Recommendations:**

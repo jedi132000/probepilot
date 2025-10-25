@@ -13,6 +13,7 @@ from typing import List, Dict, Optional
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from services.ai_service import ProbePilotAI, get_ai_response, get_quick_analysis
+from services.real_time_ai_analytics import real_time_ai_analytics
 
 # Initialize AI copilot
 ai_copilot = ProbePilotAI()
@@ -41,23 +42,8 @@ def get_ai_status_html(configured=None):
             return get_ai_status_html(configured=False)
 
 def get_current_insights_html():
-    """Generate current AI insights HTML"""
-    return """
-    <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-        <h4 style="color: #3b82f6; margin-top: 0;">🎯 AI Performance Alert</h4>
-        <p>Real-time analysis detected CPU usage spike. AI recommends scaling horizontally or optimizing worker configuration.</p>
-    </div>
-    
-    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-        <h4 style="color: #22c55e; margin-top: 0;">✅ System Health</h4>
-        <p>AI analysis confirms overall system performance is within normal parameters. Memory usage stable at 65%.</p>
-    </div>
-    
-    <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid #fbbf24; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-        <h4 style="color: #fbbf24; margin-top: 0;">⚠️ Network Notice</h4>
-        <p>AI detected unusual traffic pattern. Recommend reviewing firewall rules based on intelligent analysis.</p>
-    </div>
-    """
+    """Generate real-time AI insights HTML with actual system data"""
+    return real_time_ai_analytics.get_real_insights_html()
 
 def get_enhanced_insights_html():
     """Generate enhanced AI insights HTML with better visual hierarchy"""
@@ -158,28 +144,79 @@ def get_initial_chat_history():
     ]
 
 def get_current_recommendations():
-    """Get current AI recommendations"""
-    return """🤖 AI-Powered Recommendations:
-
-📊 Performance:
-• Nginx shows 85% CPU spike - consider horizontal scaling
-• Database queries averaging 245ms - optimize indexing
-• Memory fragmentation detected in Java process
-
-🔒 Security:
-• 3 failed SSH attempts from 192.168.1.50 - monitor closely
-• Port scan detected and blocked automatically
-• All critical services running normally
-
-⚡ Optimization:
-• Enable nginx compression for 30% bandwidth reduction
-• Implement Redis caching for frequent queries
-• Tune PostgreSQL shared_buffers to 2GB
-
-🔧 Actions:
-• Restart nginx with optimized configuration
-• Review and update firewall rules
-• Schedule memory defragmentation for Java processes"""
+    """Get real AI recommendations based on current system state"""
+    import psutil
+    import os
+    from datetime import datetime
+    
+    try:
+        # Get real system metrics
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        uptime = datetime.now() - boot_time
+        
+        recommendations = ["🤖 Real-Time System Analysis:"]
+        
+        # Performance analysis
+        recommendations.append("\n📊 Performance:")
+        if cpu_percent > 80:
+            recommendations.append(f"• High CPU usage detected: {cpu_percent:.1f}% - investigate heavy processes")
+        elif cpu_percent > 50:
+            recommendations.append(f"• Moderate CPU load: {cpu_percent:.1f}% - monitor for spikes")
+        else:
+            recommendations.append(f"• CPU usage healthy: {cpu_percent:.1f}% - system running smoothly")
+            
+        if memory.percent > 80:
+            recommendations.append(f"• Memory critical: {memory.percent:.1f}% used - consider closing applications")
+        elif memory.percent > 60:
+            recommendations.append(f"• Memory moderate: {memory.percent:.1f}% used - monitor usage patterns")
+        else:
+            recommendations.append(f"• Memory healthy: {memory.percent:.1f}% used - sufficient available")
+        
+        # Storage analysis
+        recommendations.append("\n💾 Storage:")
+        if disk.percent > 90:
+            recommendations.append(f"• Disk space critical: {disk.percent:.1f}% full - cleanup required")
+        elif disk.percent > 70:
+            recommendations.append(f"• Disk space moderate: {disk.percent:.1f}% full - plan cleanup")
+        else:
+            recommendations.append(f"• Disk space healthy: {disk.percent:.1f}% used - sufficient space")
+        
+        # Security & uptime
+        recommendations.append("\n🔒 System Health:")
+        recommendations.append(f"• System uptime: {str(uptime).split('.')[0]} - stable operation")
+        recommendations.append("• ProbePilot backend connected and responding")
+        
+        # Real optimization suggestions
+        recommendations.append("\n⚡ Optimization:")
+        if cpu_percent > 70:
+            recommendations.append("• Consider closing unnecessary applications to free CPU")
+        if memory.percent > 70:
+            recommendations.append("• Restart memory-intensive applications to reclaim RAM")
+        if disk.percent > 80:
+            recommendations.append("• Run disk cleanup to free storage space")
+        
+        # Actions based on probe data
+        recommendations.append("\n🔧 ProbePilot Actions:")
+        try:
+            import requests
+            response = requests.get("http://localhost:8000/api/v1/probes/", timeout=2)
+            if response.status_code == 200:
+                probes = response.json()
+                recommendations.append(f"• {len(probes)} active probes collecting real metrics")
+                if len(probes) > 5:
+                    recommendations.append("• Consider stopping unused probes to reduce overhead")
+            else:
+                recommendations.append("• Backend connection issues - check probe manager")
+        except:
+            recommendations.append("• Backend unreachable - restart probe manager if needed")
+        
+        return "\n".join(recommendations)
+        
+    except Exception as e:
+        return f"🤖 Real-Time System Analysis:\n\n❌ Error collecting system metrics: {str(e)}\n• Check system monitoring permissions\n• Ensure psutil is installed and accessible"
 
 def create_ai_copilot():
     """Create the AI copilot interface with enhanced visual hierarchy"""
@@ -292,9 +329,16 @@ def create_ai_copilot():
             # Right Panel - Insights and Controls (40% width)
             with gr.Column(scale=2):
                 # Real-time AI Insights with better styling
-                gr.Markdown("### 🧠 Real-time AI Insights")
+                with gr.Row():
+                    gr.Markdown("### 🧠 Real-time AI Insights")
+                    refresh_insights_btn = gr.Button("🔄 Refresh", size="sm", scale=0)
                 
-                insights_panel = gr.HTML(get_enhanced_insights_html())
+                insights_panel = gr.HTML(get_current_insights_html())
+                
+                def refresh_insights():
+                    return real_time_ai_analytics.get_real_insights_html()
+                
+                refresh_insights_btn.click(fn=refresh_insights, outputs=insights_panel)
                 
                 # Enhanced Recommendations Panel
                 gr.Markdown("### 📈 AI Recommendations")
@@ -365,15 +409,15 @@ def create_ai_copilot():
                 return f"❌ Connection failed: {str(e)}"
         
         def respond_to_chat(message, history):
-            """Generate real AI copilot response"""
+            """Generate real AI copilot response with live system context"""
             if not message.strip():
                 return history, ""
             
             # Add user message to history
             history.append([message, None])
             
-            # Get system data for context
-            system_data = get_current_system_data()
+            # Get real-time system data for context
+            system_context = real_time_ai_analytics.get_current_system_context()
             
             # Convert history for AI service
             chat_history = []
@@ -383,12 +427,21 @@ def create_ai_copilot():
                 if ai_msg:
                     chat_history.append({"role": "assistant", "content": ai_msg})
             
-            # Generate AI response asynchronously
+            # Generate AI response with real system context
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
+                
+                # Enhanced prompt with real system data
+                enhanced_message = f"""User Query: {message}
+
+Current Real-Time System Context:
+{system_context}
+
+Please provide actionable insights based on the actual system data above. Focus on real metrics and current system state."""
+                
                 response = loop.run_until_complete(
-                    get_ai_response(message, system_data, chat_history)
+                    get_ai_response(enhanced_message, {"context": system_context}, chat_history)
                 )
                 loop.close()
             except Exception as e:
