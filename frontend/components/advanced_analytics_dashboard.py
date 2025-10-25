@@ -142,16 +142,20 @@ class AdvancedAnalyticsDashboard:
                 
             # Advanced Dashboard Tab
             with gr.TabItem("📈 Advanced Dashboard"):
-                dashboard_refresh_btn = gr.Button("🔄 Load Advanced Dashboard", variant="primary")
-                dashboard_output = gr.HTML()
+                dashboard_refresh_btn = gr.Button("🔄 Refresh Dashboard", variant="primary")
+                dashboard_output = gr.HTML(value=self.get_advanced_dashboard())
                 
                 dashboard_refresh_btn.click(
                     fn=self.get_advanced_dashboard,
                     outputs=dashboard_output
                 )
         
-        # Auto-load system health on startup
-        return gr.Column([health_output])
+        # Auto-load initial data
+        try:
+            health_output.value = self.get_comprehensive_health()
+        except Exception as e:
+            logger.error(f"Error loading initial health data: {e}")
+            health_output.value = "<div class='error'>Error loading initial data</div>"
     
     def get_comprehensive_health(self):
         """Get comprehensive system health analysis"""
