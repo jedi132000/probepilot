@@ -123,6 +123,13 @@ docs/.doctrees/
 *.sqlite
 *.sqlite3
 
+# Test files (should stay local)
+test_*.py
+*_test.py
+tests/local/
+test_data/
+*.test
+
 # Configuration overrides
 config/local.yml
 config/development.yml
