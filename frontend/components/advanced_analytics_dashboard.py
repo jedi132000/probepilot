@@ -142,10 +142,18 @@ class AdvancedAnalyticsDashboard:
                 
             # Advanced Dashboard Tab
             with gr.TabItem("📈 Advanced Dashboard"):
-                dashboard_refresh_btn = gr.Button("🔄 Refresh Dashboard", variant="primary")
-                dashboard_output = gr.HTML(value=self.get_advanced_dashboard())
+                with gr.Row():
+                    dashboard_refresh_btn = gr.Button("🔄 Refresh Dashboard", variant="primary")
+                    dashboard_auto_btn = gr.Button("🚀 Load Dashboard", variant="secondary")
+                
+                dashboard_output = gr.HTML(value="<div style='text-align: center; padding: 40px; color: #888;'>Click '🚀 Load Dashboard' to view comprehensive analytics</div>")
                 
                 dashboard_refresh_btn.click(
+                    fn=self.get_advanced_dashboard,
+                    outputs=dashboard_output
+                )
+                
+                dashboard_auto_btn.click(
                     fn=self.get_advanced_dashboard,
                     outputs=dashboard_output
                 )
@@ -683,27 +691,48 @@ class AdvancedAnalyticsDashboard:
     def get_advanced_dashboard(self):
         """Get advanced dashboard with comprehensive visualizations"""
         try:
+            logger.info(f"Requesting dashboard from {self.backend_url}/api/v1/analytics/dashboard")
             response = requests.get(f"{self.backend_url}/api/v1/analytics/dashboard", timeout=30)
             
             if response.status_code == 200:
                 data = response.json()
-                dashboard_html = data.get("dashboard_html", "<div>No dashboard available</div>")
+                success = data.get("success", False)
+                dashboard_html = data.get("dashboard_html", "")
+                
+                if not success:
+                    return f"<div class='error'>Backend returned success=false</div>"
+                
+                if not dashboard_html:
+                    return f"<div class='error'>No dashboard HTML received from backend</div>"
+                
+                logger.info(f"Dashboard HTML received, length: {len(dashboard_html)}")
                 
                 # Wrap in container
                 wrapped_html = f"""
                 <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; margin: 10px 0;">
                     <h2 style="color: white; text-align: center; margin-bottom: 20px;">🚀 Advanced Analytics Dashboard</h2>
+                    <div style="color: #888; font-size: 12px; text-align: center; margin-bottom: 10px;">
+                        Generated: {data.get('generated_at', 'unknown')} | Period: {data.get('data_period_hours', 24)} hours
+                    </div>
                     {dashboard_html}
                 </div>
                 """
                 
                 return wrapped_html
             else:
-                return f"<div class='error'>Error: {response.status_code} - {response.text}</div>"
+                error_msg = f"HTTP {response.status_code}: {response.text[:200]}"
+                logger.error(f"Dashboard API error: {error_msg}")
+                return f"<div class='error'>Backend Error: {error_msg}</div>"
                 
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error to backend: {e}")
+            return f"<div class='error'>Cannot connect to backend at {self.backend_url}. Is the backend running on port 8000?</div>"
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Timeout error: {e}")
+            return f"<div class='error'>Backend timeout after 30 seconds. Backend may be overloaded.</div>"
         except Exception as e:
-            logger.error(f"Error getting advanced dashboard: {e}")
-            return f"<div class='error'>Error loading dashboard: {str(e)}</div>"
+            logger.error(f"Unexpected error getting advanced dashboard: {e}")
+            return f"<div class='error'>Unexpected error: {str(e)}</div>"
 
 # Create global instance
 advanced_analytics_dashboard = AdvancedAnalyticsDashboard()
