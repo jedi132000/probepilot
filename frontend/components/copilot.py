@@ -46,54 +46,117 @@ def get_current_insights_html():
     return real_time_ai_analytics.get_real_insights_html()
 
 def get_enhanced_insights_html():
-    """Generate enhanced AI insights HTML with better visual hierarchy"""
-    return """
-    <div class="ai-insights-panel">
-        <div class="ai-alert-performance" style="border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 24px; margin-right: 12px;">🎯</span>
-                <div>
-                    <h4 style="color: #3b82f6; margin: 0;">Performance Alert</h4>
-                    <span style="color: #64748b; font-size: 0.85em;">2 minutes ago</span>
-                </div>
-            </div>
-            <p style="margin: 0; color: #e2e8f0;">CPU usage spike detected on nginx process. AI recommends horizontal scaling or worker optimization.</p>
-            <div style="margin-top: 8px;">
-                <span style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; padding: 2px 8px; border-radius: 12px; font-size: 0.75em;">HIGH PRIORITY</span>
-            </div>
-        </div>
+    """Generate enhanced AI insights HTML with real alert data"""
+    try:
+        # Get real system data with advanced alerting
+        system_data = get_current_system_data()
         
-        <div class="ai-status-good" style="border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 24px; margin-right: 12px;">✅</span>
-                <div>
-                    <h4 style="color: #22c55e; margin: 0;">System Health</h4>
-                    <span style="color: #64748b; font-size: 0.85em;">Live monitoring</span>
-                </div>
-            </div>
-            <p style="margin: 0; color: #e2e8f0;">Overall system performance within normal parameters. Memory usage stable at 65%.</p>
-            <div style="margin-top: 8px;">
-                <span style="background: rgba(34, 197, 94, 0.2); color: #86efac; padding: 2px 8px; border-radius: 12px; font-size: 0.75em;">STABLE</span>
-            </div>
-        </div>
+        insights_html = '<div class="ai-insights-panel">'
         
-        <div class="ai-alert-security" style="border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 24px; margin-right: 12px;">⚠️</span>
-                <div>
-                    <h4 style="color: #fbbf24; margin: 0;">Network Notice</h4>
-                    <span style="color: #64748b; font-size: 0.85em;">5 minutes ago</span>
-                </div>
-            </div>
-            <p style="margin: 0; color: #e2e8f0;">System monitoring active. All network traffic within normal parameters.</p>
-            <div style="margin-top: 8px;">
-                <span style="background: rgba(251, 191, 36, 0.2); color: #fcd34d; padding: 2px 8px; border-radius: 12px; font-size: 0.75em;">MEDIUM</span>
-            </div>
-        </div>
+        # Process alerts from the advanced alert engine
+        alert_details = system_data.get('alert_details', [])
+        system_status = system_data.get('system_health_status', 'unknown')
         
-        {get_live_metrics_html()}
-    </div>
-    """
+        # Generate alert cards based on real data
+        if alert_details:
+            for alert in alert_details:
+                severity = alert.get('severity', 'info')
+                message = alert.get('message', '')
+                suggested_actions = alert.get('suggested_actions', [])
+                baseline_deviation = alert.get('baseline_deviation')
+                
+                # Color and icon based on severity
+                if severity == 'critical':
+                    color = '#ef4444'
+                    icon = '🚨'
+                    priority = 'CRITICAL'
+                    bg_color = 'rgba(239, 68, 68, 0.1)'
+                elif severity == 'warning':
+                    color = '#fbbf24'
+                    icon = '⚠️'
+                    priority = 'WARNING'
+                    bg_color = 'rgba(251, 191, 36, 0.1)'
+                else:
+                    color = '#3b82f6'
+                    icon = 'ℹ️'
+                    priority = 'INFO'
+                    bg_color = 'rgba(59, 130, 246, 0.1)'
+                
+                # Build suggested actions HTML
+                actions_html = ""
+                if suggested_actions:
+                    actions_html = "<br><strong>Suggested Actions:</strong><br>" + "<br>".join([f"• {action}" for action in suggested_actions[:3]])
+                
+                # Add baseline deviation info if available
+                deviation_info = ""
+                if baseline_deviation is not None:
+                    deviation_info = f"<br><small>Baseline deviation: {baseline_deviation:.1f}σ</small>"
+                
+                insights_html += f"""
+                <div style="background: {bg_color}; border: 1px solid {color}; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 24px; margin-right: 12px;">{icon}</span>
+                        <div>
+                            <h4 style="color: {color}; margin: 0;">{alert.get('metric_name', '').replace('_', ' ').title()} Alert</h4>
+                            <span style="color: #64748b; font-size: 0.85em;">Real-time detection</span>
+                        </div>
+                    </div>
+                    <p style="margin: 0; color: #e2e8f0;">{message}{deviation_info}{actions_html}</p>
+                    <div style="margin-top: 8px;">
+                        <span style="background: rgba({color[1:3]}, {color[3:5]}, {color[5:7]}, 0.2); color: {color}; padding: 2px 8px; border-radius: 12px; font-size: 0.75em;">{priority}</span>
+                    </div>
+                </div>
+                """
+        else:
+            # System healthy - show positive status
+            if system_status == 'healthy':
+                insights_html += f"""
+                <div class="ai-status-good" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 24px; margin-right: 12px;">✅</span>
+                        <div>
+                            <h4 style="color: #22c55e; margin: 0;">System Health Excellent</h4>
+                            <span style="color: #64748b; font-size: 0.85em;">Advanced monitoring active</span>
+                        </div>
+                    </div>
+                    <p style="margin: 0; color: #e2e8f0;">{system_data.get('system_health_message', 'All systems operating normally')}</p>
+                    <div style="margin-top: 8px;">
+                        <span style="background: rgba(34, 197, 94, 0.2); color: #86efac; padding: 2px 8px; border-radius: 12px; font-size: 0.75em;">OPTIMAL</span>
+                    </div>
+                </div>
+                """
+            else:
+                # Unknown or error state
+                insights_html += f"""
+                <div style="background: rgba(100, 116, 139, 0.1); border: 1px solid #64748b; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 24px; margin-right: 12px;">❓</span>
+                        <div>
+                            <h4 style="color: #64748b; margin: 0;">System Status</h4>
+                            <span style="color: #64748b; font-size: 0.85em;">Monitoring active</span>
+                        </div>
+                    </div>
+                    <p style="margin: 0; color: #e2e8f0;">{system_data.get('system_health_message', 'System monitoring in progress')}</p>
+                </div>
+                """
+        
+        # Add live metrics
+        insights_html += get_live_metrics_html()
+        insights_html += '</div>'
+        
+        return insights_html
+        
+    except Exception as e:
+        # Fallback to simple status if advanced alerting fails
+        return f"""
+        <div class="ai-insights-panel">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <h4 style="color: #ef4444; margin: 0;">Alert System Error</h4>
+                <p style="margin: 8px 0 0 0; color: #e2e8f0;">Advanced alerting temporarily unavailable: {str(e)}</p>
+            </div>
+            {get_live_metrics_html()}
+        </div>
+        """
 
 def get_live_metrics_html():
     """Generate live metrics HTML with real system data"""
@@ -108,7 +171,7 @@ def get_live_metrics_html():
         probe_count = 0
         try:
             import requests
-            response = requests.get("http://localhost:8000/api/v1/probes/", timeout=1)
+            response = requests.get("http://localhost:8001/api/v1/probes/", timeout=1)
             if response.status_code == 200:
                 probes = response.json()
                 probe_count = len(probes)
@@ -153,74 +216,115 @@ def get_live_metrics_html():
         """
 
 def get_current_system_data():
-    """Get real system data for AI context"""
-    import psutil
+    """Get real system data for AI context using advanced alert engine via API"""
     from datetime import datetime
     
     try:
-        # Get real system metrics
-        cpu_percent = psutil.cpu_percent(interval=0.1)
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
-        processes = len(psutil.pids())
+        # Try to get data from the alert engine API first
+        import requests
+        response = requests.get("http://localhost:8001/api/v1/alerts/health", timeout=3)
         
-        # Get network stats
-        net_io = psutil.net_io_counters()
+        if response.status_code == 200:
+            api_data = response.json()
+            if api_data.get('success'):
+                health_status = api_data.get('data', {})
+                
+                # Get probe data from backend
+                probe_count = 0
+                try:
+                    probe_response = requests.get("http://localhost:8001/api/v1/probes/", timeout=2)
+                    if probe_response.status_code == 200:
+                        probes = probe_response.json()
+                        probe_count = len(probes)
+                except:
+                    probe_count = 0
+                
+                # Format alerts for display
+                alert_messages = []
+                for alert in health_status.get('alerts', []):
+                    alert_messages.append(f"{alert['message']} (severity: {alert['severity']})")
+                
+                if not alert_messages:
+                    alert_messages = [health_status.get('message', 'All systems normal')]
+                
+                metrics = health_status.get('metrics', {})
+                
+                return {
+                    "cpu_usage": f"{metrics.get('cpu_percent', 0):.1f}%",
+                    "memory_usage": f"{metrics.get('memory_percent', 0):.1f}%", 
+                    "network_traffic": f"{metrics.get('network_in_mbps', 0):.1f} Mbps in, {metrics.get('network_out_mbps', 0):.1f} Mbps out",
+                    "active_processes": "N/A",  # Not critical for AI analysis
+                    "system_load": f"{metrics.get('load_average', 0):.1f}",
+                    "disk_usage": f"{metrics.get('disk_percent', 0):.1f}%",
+                    "timestamp": datetime.now().isoformat(),
+                    "alerts": alert_messages,
+                    "system_health_status": health_status.get('status'),
+                    "system_health_message": health_status.get('message'),
+                    "alert_details": health_status.get('alerts', []),
+                    "dynamic_thresholds": health_status.get('thresholds', {}),
+                    "probe_data": {
+                        "active_probes": probe_count,
+                        "health_insights": f"System status: {health_status.get('status', 'unknown').upper()}"
+                    }
+                }
         
-        # Generate real alerts based on thresholds
-        alerts = []
-        if cpu_percent > 80:
-            alerts.append(f"High CPU usage: {cpu_percent:.1f}%")
-        if memory.percent > 85:
-            alerts.append(f"High memory usage: {memory.percent:.1f}%")
-        if disk.percent > 90:
-            alerts.append(f"Low disk space: {disk.percent:.1f}% used")
+        # Fallback: API not available, use basic psutil
+        raise Exception("Alert API not available, falling back to basic monitoring")
         
-        # Get probe data from backend
-        probe_count = 0
-        try:
-            import requests
-            response = requests.get("http://localhost:8000/api/v1/probes/", timeout=2)
-            if response.status_code == 200:
-                probes = response.json()
-                probe_count = len(probes)
-        except:
-            probe_count = 0
-        
-        return {
-            "cpu_usage": f"{cpu_percent:.1f}%",
-            "memory_usage": f"{memory.percent:.1f}%", 
-            "network_traffic": f"{net_io.bytes_recv // (1024*1024)} MB in, {net_io.bytes_sent // (1024*1024)} MB out",
-            "active_processes": processes,
-            "system_load": f"{psutil.getloadavg()[0]:.1f}" if hasattr(psutil, 'getloadavg') else "N/A",
-            "disk_usage": f"{disk.percent:.1f}%",
-            "timestamp": datetime.now().isoformat(),
-            "alerts": alerts if alerts else ["All systems normal"],
-            "probe_data": {
-                "active_probes": probe_count,
-                "total_memory": f"{memory.total // (1024*1024*1024)} GB",
-                "available_memory": f"{memory.available // (1024*1024*1024)} GB"
-            }
-        }
     except Exception as e:
-        # Fallback to basic info if psutil fails
-        return {
-            "cpu_usage": "N/A",
-            "memory_usage": "N/A",
-            "network_traffic": "N/A",
-            "active_processes": "N/A",
-            "system_load": "N/A", 
-            "disk_usage": "N/A",
-            "timestamp": datetime.now().isoformat(),
-            "alerts": [f"System monitoring error: {str(e)}"],
-            "probe_data": {"error": "Unable to collect metrics"}
-        }
+        # Fallback to basic psutil if alert engine API fails
+        import psutil
+        try:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            
+            # Basic threshold checking
+            alerts = []
+            if cpu_percent > 80:
+                alerts.append(f"High CPU usage: {cpu_percent:.1f}%")
+            if memory.percent > 85:
+                alerts.append(f"High memory usage: {memory.percent:.1f}%")
+            if disk.percent > 90:
+                alerts.append(f"Low disk space: {disk.percent:.1f}% used")
+            
+            return {
+                "cpu_usage": f"{cpu_percent:.1f}%",
+                "memory_usage": f"{memory.percent:.1f}%",
+                "network_traffic": "N/A",
+                "active_processes": "N/A",
+                "system_load": "N/A", 
+                "disk_usage": f"{disk.percent:.1f}%",
+                "timestamp": datetime.now().isoformat(),
+                "alerts": alerts if alerts else ["All systems normal (basic monitoring)"],
+                "system_health_status": "fallback",
+                "probe_data": {"error": f"Advanced alert engine unavailable: {str(e)}"}
+            }
+        except Exception as fallback_e:
+            return {
+                "cpu_usage": "N/A",
+                "memory_usage": "N/A",
+                "network_traffic": "N/A",
+                "active_processes": "N/A",
+                "system_load": "N/A", 
+                "disk_usage": "N/A",
+                "timestamp": datetime.now().isoformat(),
+                "alerts": [f"System monitoring error: {str(fallback_e)}"],
+                "system_health_status": "error",
+                "probe_data": {"error": "Unable to collect metrics"}
+            }
 
 def get_initial_chat_history():
     """Get initial chat history for the copilot"""
     return [
-        ("Hello! What can you analyze for me today?", 
-         "👋 Welcome to ProbePilot AI! I'm your intelligent system analysis assistant powered by OpenAI GPT-4. I can help you with:\n\n• **Performance Analysis** - Identify bottlenecks and optimization opportunities\n• **Security Assessment** - Detect threats and vulnerabilities\n• **Troubleshooting** - Diagnose and resolve system issues\n• **Capacity Planning** - Predict resource needs and scaling requirements\n\nJust ask me any questions about your system or request specific analysis!")
+        {
+            "role": "user",
+            "content": "Hello! What can you analyze for me today?"
+        },
+        {
+            "role": "assistant", 
+            "content": "👋 Welcome to ProbePilot AI! I'm your intelligent system analysis assistant powered by OpenAI GPT-4. I can help you with:\n\n• **Performance Analysis** - Identify bottlenecks and optimization opportunities\n• **Security Assessment** - Detect threats and vulnerabilities\n• **Troubleshooting** - Diagnose and resolve system issues\n• **Capacity Planning** - Predict resource needs and scaling requirements\n\nJust ask me any questions about your system or request specific analysis!"
+        }
     ]
 
 def get_current_recommendations():
@@ -282,7 +386,7 @@ def get_current_recommendations():
         recommendations.append("\n🔧 ProbePilot Actions:")
         try:
             import requests
-            response = requests.get("http://localhost:8000/api/v1/probes/", timeout=2)
+            response = requests.get("http://localhost:8001/api/v1/probes/", timeout=2)
             if response.status_code == 200:
                 probes = response.json()
                 recommendations.append(f"• {len(probes)} active probes collecting real metrics")
@@ -363,7 +467,7 @@ def create_ai_copilot():
                     value=get_initial_chat_history(),
                     height=450,
                     avatar_images=("👤", "🤖"),
-                    type="tuples",
+                    type="messages",
                     show_copy_button=True,
                     bubble_full_width=False
                 )

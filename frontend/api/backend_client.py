@@ -12,7 +12,7 @@ from datetime import datetime
 class BackendClient:
     """Client for communicating with ProbePilot FastAPI backend"""
     
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8001"):
         self.base_url = base_url
         self.client = httpx.AsyncClient(base_url=base_url)
         

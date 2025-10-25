@@ -164,7 +164,7 @@ def create_probe_manager():
                     return f"✅ Probe '{name}' successfully deployed!\n\n📋 **Deployment Details:**\n• Probe ID: {probe_id}\n• Status: {result.get('status', 'running')}\n• Target: {probe_config['target']}\n• Sampling Rate: {rate} Hz\n\n🔍 Check the 'Deployed Probes' section to monitor its status."
                 else:
                     error_msg = result.get("error", "Unknown deployment error")
-                    return f"❌ Probe deployment failed: {error_msg}\n\n🔧 **Troubleshooting:**\n• Check if backend is running (localhost:8000)\n• Verify probe configuration is valid\n• Ensure you have necessary permissions for eBPF"
+                    return f"❌ Probe deployment failed: {error_msg}\n\n🔧 **Troubleshooting:**\n• Check if backend is running (localhost:8001)\n• Verify probe configuration is valid\n• Ensure you have necessary permissions for eBPF"
                     
             except Exception as e:
                 return f"❌ Backend connection error: {str(e)}\n\n🔧 **Troubleshooting:**\n• Start the backend: `python backend/main.py`\n• Check if port 8000 is available\n• Verify network connectivity"

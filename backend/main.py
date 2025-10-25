@@ -12,7 +12,7 @@ import logging
 from typing import List, Dict, Any, Optional
 
 # Import API routers
-from api.v1 import probes, metrics, system, copilot, events
+from api.v1 import probes, metrics, system, copilot, events, alerts, historical_metrics
 from core.config import get_settings
 from core.database import get_database
 from core.probe_manager import probe_manager
@@ -76,10 +76,17 @@ app.include_router(
 )
 
 app.include_router(
-    events.router,
+    alerts.router,
     prefix="/api/v1",
-    tags=["events"],
-    responses={500: {"description": "Events service unavailable"}},
+    tags=["alerts"],
+    responses={500: {"description": "Alert engine unavailable"}},
+)
+
+app.include_router(
+    historical_metrics.router,
+    prefix="/api/v1",
+    tags=["historical-metrics"],
+    responses={500: {"description": "Historical metrics unavailable"}},
 )
 
 @app.get("/", tags=["root"])
