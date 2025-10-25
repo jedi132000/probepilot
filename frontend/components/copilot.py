@@ -85,56 +85,136 @@ def get_enhanced_insights_html():
                     <span style="color: #64748b; font-size: 0.85em;">5 minutes ago</span>
                 </div>
             </div>
-            <p style="margin: 0; color: #e2e8f0;">Unusual traffic pattern from 192.168.1.50. Review firewall rules recommended.</p>
+            <p style="margin: 0; color: #e2e8f0;">System monitoring active. All network traffic within normal parameters.</p>
             <div style="margin-top: 8px;">
                 <span style="background: rgba(251, 191, 36, 0.2); color: #fcd34d; padding: 2px 8px; border-radius: 12px; font-size: 0.75em;">MEDIUM</span>
             </div>
         </div>
         
+        {get_live_metrics_html()}
+    </div>
+    """
+
+def get_live_metrics_html():
+    """Generate live metrics HTML with real system data"""
+    import psutil
+    
+    try:
+        # Get real system metrics
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory = psutil.virtual_memory()
+        
+        # Get probe count
+        probe_count = 0
+        try:
+            import requests
+            response = requests.get("http://localhost:8000/api/v1/probes/", timeout=1)
+            if response.status_code == 200:
+                probes = response.json()
+                probe_count = len(probes)
+        except:
+            probe_count = 0
+        
+        # Color coding based on thresholds
+        cpu_color = "#ef4444" if cpu_percent > 80 else "#fbbf24" if cpu_percent > 60 else "#22c55e"
+        mem_color = "#ef4444" if memory.percent > 80 else "#fbbf24" if memory.percent > 60 else "#22c55e"
+        probe_color = "#22c55e" if probe_count > 0 else "#64748b"
+        
+        return f"""
         <div style="background: rgba(30, 41, 59, 0.6); border-radius: 8px; padding: 12px; border: 1px solid rgba(71, 85, 105, 0.3);">
             <h4 style="color: #94a3b8; margin: 0 0 8px 0; font-size: 0.9em;">📊 LIVE METRICS</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em;">
                 <div>
                     <span style="color: #64748b;">CPU:</span>
-                    <span style="color: #22c55e; font-weight: bold;">24%</span>
+                    <span style="color: {cpu_color}; font-weight: bold;">{cpu_percent:.1f}%</span>
                 </div>
                 <div>
                     <span style="color: #64748b;">Memory:</span>
-                    <span style="color: #fbbf24; font-weight: bold;">65%</span>
+                    <span style="color: {mem_color}; font-weight: bold;">{memory.percent:.1f}%</span>
                 </div>
                 <div>
-                    <span style="color: #64748b;">Network:</span>
-                    <span style="color: #3b82f6; font-weight: bold;">150MB/s</span>
+                    <span style="color: #64748b;">Available:</span>
+                    <span style="color: #3b82f6; font-weight: bold;">{memory.available // (1024*1024*1024)} GB</span>
                 </div>
                 <div>
                     <span style="color: #64748b;">Probes:</span>
-                    <span style="color: #22c55e; font-weight: bold;">12 active</span>
+                    <span style="color: {probe_color}; font-weight: bold;">{probe_count} active</span>
                 </div>
             </div>
         </div>
-    </div>
-    """
+        """
+        
+    except Exception as e:
+        return f"""
+        <div style="background: rgba(30, 41, 59, 0.6); border-radius: 8px; padding: 12px; border: 1px solid rgba(71, 85, 105, 0.3);">
+            <h4 style="color: #94a3b8; margin: 0 0 8px 0; font-size: 0.9em;">📊 LIVE METRICS</h4>
+            <p style="color: #ef4444; font-size: 0.85em;">Unable to load real-time metrics: {str(e)}</p>
+        </div>
+        """
 
 def get_current_system_data():
-    """Get current system data for AI context"""
-    return {
-        "cpu_usage": "24%",
-        "memory_usage": "65%", 
-        "network_traffic": "150MB/s in, 120MB/s out",
-        "active_processes": 156,
-        "system_load": "2.4",
-        "disk_usage": "78%",
-        "timestamp": datetime.now().isoformat(),
-        "alerts": [
-            "nginx CPU spike to 85%",
-            "3 failed SSH attempts from 192.168.1.50"
-        ],
-        "probe_data": {
-            "tcp_connections": 1247,
-            "memory_allocations": 89234,
-            "cpu_samples": 15847
+    """Get real system data for AI context"""
+    import psutil
+    from datetime import datetime
+    
+    try:
+        # Get real system metrics
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        processes = len(psutil.pids())
+        
+        # Get network stats
+        net_io = psutil.net_io_counters()
+        
+        # Generate real alerts based on thresholds
+        alerts = []
+        if cpu_percent > 80:
+            alerts.append(f"High CPU usage: {cpu_percent:.1f}%")
+        if memory.percent > 85:
+            alerts.append(f"High memory usage: {memory.percent:.1f}%")
+        if disk.percent > 90:
+            alerts.append(f"Low disk space: {disk.percent:.1f}% used")
+        
+        # Get probe data from backend
+        probe_count = 0
+        try:
+            import requests
+            response = requests.get("http://localhost:8000/api/v1/probes/", timeout=2)
+            if response.status_code == 200:
+                probes = response.json()
+                probe_count = len(probes)
+        except:
+            probe_count = 0
+        
+        return {
+            "cpu_usage": f"{cpu_percent:.1f}%",
+            "memory_usage": f"{memory.percent:.1f}%", 
+            "network_traffic": f"{net_io.bytes_recv // (1024*1024)} MB in, {net_io.bytes_sent // (1024*1024)} MB out",
+            "active_processes": processes,
+            "system_load": f"{psutil.getloadavg()[0]:.1f}" if hasattr(psutil, 'getloadavg') else "N/A",
+            "disk_usage": f"{disk.percent:.1f}%",
+            "timestamp": datetime.now().isoformat(),
+            "alerts": alerts if alerts else ["All systems normal"],
+            "probe_data": {
+                "active_probes": probe_count,
+                "total_memory": f"{memory.total // (1024*1024*1024)} GB",
+                "available_memory": f"{memory.available // (1024*1024*1024)} GB"
+            }
         }
-    }
+    except Exception as e:
+        # Fallback to basic info if psutil fails
+        return {
+            "cpu_usage": "N/A",
+            "memory_usage": "N/A",
+            "network_traffic": "N/A",
+            "active_processes": "N/A",
+            "system_load": "N/A", 
+            "disk_usage": "N/A",
+            "timestamp": datetime.now().isoformat(),
+            "alerts": [f"System monitoring error: {str(e)}"],
+            "probe_data": {"error": "Unable to collect metrics"}
+        }
 
 def get_initial_chat_history():
     """Get initial chat history for the copilot"""
